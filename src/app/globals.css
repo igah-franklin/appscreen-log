@@ -1,0 +1,271 @@
+@import "tailwindcss";
+
+/* Self-hosted variable fonts, identical to the reference site's */
+@font-face {
+  font-family: "Geist Sans";
+  src: url("/assets/fonts/geist-sans/GeistVF.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/assets/fonts/geist-mono/GeistMonoVF.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* Tailwind v3 rgb palette used by the reference site */
+  --color-violet-50: rgb(245 243 255);
+  --color-violet-100: rgb(237 233 254);
+  --color-violet-200: rgb(221 214 254);
+  --color-violet-300: rgb(196 181 253);
+  --color-violet-400: rgb(167 139 250);
+  --color-violet-500: rgb(139 92 246);
+  --color-violet-600: rgb(124 58 237);
+  --color-violet-950: rgb(46 16 101);
+
+  --color-zinc-200: rgb(228 228 231);
+  --color-zinc-300: rgb(212 212 216);
+  --color-zinc-400: rgb(161 161 170);
+  --color-zinc-900: rgb(24 24 27);
+  --color-zinc-950: rgb(9 9 11);
+
+  --color-gray-50: rgb(249 250 251);
+  --color-gray-200: rgb(229 231 235);
+  --color-gray-400: rgb(156 163 175);
+  --color-gray-500: rgb(107 114 128);
+  --color-gray-900: rgb(17 24 39);
+
+  --color-green-50: rgb(240 253 244);
+  --color-green-600: rgb(22 163 74);
+  --color-green-700: rgb(21 128 61);
+
+  --color-indigo-500: rgb(99 102 241);
+  --color-indigo-600: rgb(79 70 229);
+
+  --color-shell: #1f1f24;
+
+  /* The reference's max-w-2xl is 40rem, not Tailwind's default 42rem */
+  --container-2xl: 40rem;
+
+  --breakpoint-3xl: 1792px;
+  --breakpoint-4xl: 2048px;
+  --breakpoint-5xl: 2304px;
+
+  /* Font scale from the reference site's Tailwind config */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 2rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 2rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 2.5rem;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 3.5rem;
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 3.5rem;
+  --text-6xl: 3.75rem;
+  --text-6xl--line-height: 1;
+  --text-7xl: 4.5rem;
+  --text-7xl--line-height: 1.1;
+
+  --leading-extratight: 1.15;
+  --blur-4xl: 200px;
+}
+
+@theme inline {
+  --shadow-inner-blur: inset -0.5px 0.5px 1px 0px rgba(203, 213, 225, 0.12),
+    inset 0 0 96px 0 rgba(221, 214, 254, 0.08);
+  --shadow-inner-blur-light: inset -0.5px 0.5px 1px 0px rgba(203, 213, 225, 0.01),
+    inset 0 0 96px 0 rgba(221, 214, 254, 0.08);
+}
+
+:root {
+  --background-image-btn-primary: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.55),
+      rgba(243, 238, 255, 0.4)
+    ),
+    linear-gradient(to bottom, rgba(139, 92, 246, 1), rgba(81, 54, 144, 1));
+  --background-image-btn-primary-hover: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.55),
+      rgba(243, 238, 255, 0.25)
+    ),
+    linear-gradient(to bottom, rgba(139, 92, 246, 1), rgba(81, 54, 144, 1));
+  --shadow-btn-primary: inset 0px 1px 0px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 12px 0px rgba(255, 255, 255, 0.08),
+    inset 0px -8px 32px 0px rgba(30, 13, 73, 0.5),
+    0px 0px 0px 1px rgba(0, 0, 0, 0.2), 0px 1px 3px 0px rgba(0, 0, 0, 0.4),
+    0px 1px 0px 0px rgba(0, 0, 0, 0.2), 0px 4px 25px 1px rgba(139, 92, 246, 0.5);
+  --shadow-btn-primary-hover: inset 0px 1px 0px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 12px 0px rgba(255, 255, 255, 0.08),
+    inset 0px -8px 32px 0px rgba(30, 13, 73, 0.5),
+    0px 0px 0px 1px rgba(0, 0, 0, 0.2), 0px 1px 3px 0px rgba(0, 0, 0, 0.4),
+    0px 1px 0px 0px rgba(0, 0, 0, 0.2), 0px 4px 50px 3px rgba(124, 58, 237, 0.1);
+}
+
+@utility shadow-inner-blur {
+  box-shadow: inset -0.5px 0.5px 1px 0px rgba(203, 213, 225, 0.12),
+    inset 0 0 96px 0 rgba(221, 214, 254, 0.08);
+}
+
+@utility shadow-inner-blur-light {
+  box-shadow: inset -0.5px 0.5px 1px 0px rgba(203, 213, 225, 0.01),
+    inset 0 0 96px 0 rgba(221, 214, 254, 0.08);
+}
+
+@utility bg-btn-primary {
+  background-image: var(--background-image-btn-primary);
+}
+
+@utility shadow-btn-primary {
+  box-shadow: var(--shadow-btn-primary);
+}
+
+@utility leading-extratight {
+  line-height: 1.15;
+}
+
+@utility blur-4xl {
+  --tw-blur: blur(200px);
+  filter: blur(200px);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-zinc-900);
+  }
+
+  body {
+    background-color: var(--color-zinc-900);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 400;
+    font-style: normal;
+    color: #121212;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Global typography scale carried over from the reference site */
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
+    letter-spacing: normal;
+    margin: 0 0 16px;
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 32px;
+    letter-spacing: normal;
+    margin: 0 0 16px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 28px;
+    letter-spacing: normal;
+    margin: 0 0 16px;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 24px;
+    letter-spacing: normal;
+    margin: 0 0 16px;
+  }
+  button {
+    cursor: pointer;
+  }
+  img {
+    max-width: 100%;
+  }
+}
+
+/* Template screenshot rail: matches the reference's custom scrollbar */
+.very-scrollable {
+  overflow-x: scroll;
+}
+.very-scrollable::-webkit-scrollbar {
+  width: 0.65em;
+  height: 0.65em;
+}
+.very-scrollable::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.14);
+  border-radius: 999px;
+  box-shadow: inset 0 0 3px rgba(15, 23, 42, 0.18);
+}
+.very-scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.72);
+  outline: 1px solid rgba(100, 116, 139, 0.34);
+  border-radius: 999px;
+}
+
+/* Material-style toolbar buttons */
+.nav-btn {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 64px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 36px;
+  color: #fff;
+  white-space: nowrap;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+/* Text-only link buttons used inside template cards */
+.btn-link {
+  position: relative;
+  display: inline-flex;
+  height: auto;
+  min-height: 0;
+  flex-shrink: 0;
+  user-select: none;
+  align-items: center;
+  column-gap: 0.25rem;
+  white-space: nowrap;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-link:active {
+  transform: scale(0.95);
+}
+.btn-link:hover {
+  opacity: 0.75;
+  text-decoration: none;
+}
+.btn-link.btn-primary {
+  color: rgb(79 70 229);
+}
+.btn-link.btn-secondary {
+  color: rgb(99 102 241);
+}
+.btn-link.btn-success {
+  color: rgb(22 163 74);
+}
