@@ -19,6 +19,8 @@ import {
 } from "@/lib/editor-model";
 import { drawScreen, loadImage } from "@/lib/render";
 import { TEMPLATES } from "@/data/templates";
+import { api, type ApiProject } from "@/lib/api";
+import { LayeredEditor } from "./layered-editor";
 import { previewUrl } from "@/lib/images";
 import { ScreenCanvas } from "./screen-canvas";
 import { ScreenPanels } from "./panels";
@@ -68,6 +70,31 @@ function ToolbarButton({
 export function Editor() {
   const params = useSearchParams();
   const templateId = params.get("template");
+  const projectId = params.get("project");
+
+  /* Projects copied from a template live on the API and use the layer editor. */
+  const [apiProject, setApiProject] = useState<ApiProject | null>(null);
+  const [loadingProject, setLoadingProject] = useState(Boolean(projectId));
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    api
+      .getProject(projectId)
+      .then((p) => {
+        if (!cancelled) setApiProject(p);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setLoadError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProject(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   const [project, setProject] = useState<Project | null>(() =>
     loadInitialProject(templateId),
@@ -247,6 +274,44 @@ export function Editor() {
       }`,
     );
   };
+
+  if (projectId) {
+    if (loadingProject)
+      return (
+        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-white text-sm text-gray-500">
+          Opening project…
+        </div>
+      );
+    if (apiProject)
+      return (
+        <LayeredEditor
+          initial={apiProject}
+          onExit={() => {
+            window.history.replaceState(null, "", "/user/sandbox");
+            setApiProject(null);
+          }}
+        />
+      );
+    return (
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-white px-6">
+        <div className="max-w-md text-center">
+          <p className="text-sm font-semibold text-gray-900">
+            Could not open that project.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-gray-500">
+            {loadError ?? "It may have expired."} Make sure the API is running
+            on port 4000.
+          </p>
+          <Link
+            href="/templates"
+            className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            Back to templates
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   /* ---- empty state ---------------------------------------------------- */
   if (!project) {

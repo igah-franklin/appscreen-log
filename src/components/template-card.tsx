@@ -4,12 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Template } from "@/data/templates";
 import { previewSrcSet, previewUrl } from "@/lib/images";
-import {
-  EllipsisVerticalIcon,
-  ExternalLinkIcon,
-  MenuGlyph,
-  ShapesIcon,
-} from "./icons";
+import { EllipsisVerticalIcon, ExternalLinkIcon, MenuGlyph } from "./icons";
+import { CardStartButton } from "./card-start-button";
 
 const CARD_MENU = [
   { label: "See more", icon: "layers" },
@@ -44,13 +40,7 @@ export function TemplateCard({ template }: { template: Template }) {
           </div>
         </div>
         <div className="flex space-x-5" ref={wrap}>
-          <Link
-            className="btn-link btn-success"
-            href={`/user/sandbox?template=${template.id}`}
-          >
-            <ShapesIcon className="h-3.5 w-3.5 align-middle" />
-            Start with Template
-          </Link>
+          <CardStartButton templateId={template.id} />
           <Link className="btn-link btn-secondary" href={href} target="_blank">
             <ExternalLinkIcon className="h-3.5 w-3.5 align-middle" />
             Preview

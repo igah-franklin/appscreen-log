@@ -1,0 +1,817 @@
+{
+ "background": "rgba(121,85,254,0.18)",
+ "titleFont": "Cal Sans",
+ "subtitleFont": "Roboto",
+ "targets": [
+  "andgenerictablet10",
+  "andgenericphone",
+  "iostabx",
+  "iosphone67"
+ ],
+ "screens": [
+  {
+   "order": 0,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Learn Languages in Minutes",
+       "color": "rgba(121,85,254,1)",
+       "gradient": "linear-gradient(270deg,rgba(121,85,254,1) 31%,rgba(121,85,254,0.7) 99%)",
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "decoration": "none"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.0048,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.2,
+       "x": -0.327,
+       "y": 0.2582,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-irregular-cutout-shape-doodle-accent-003.svg",
+      "assetShape": "blob"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.1258,
+       "x": 0,
+       "y": 0.4582,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": 0.2571,
+       "y": 0.584,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-liquid-drop-puddle-freeform-background-025.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.3132,
+       "h": 0.0732,
+       "x": 0.7209,
+       "y": 0.0222,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/sparkle-cluster-four-point-stars-005.svg",
+      "assetShape": "sparkle"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.1502,
+       "x": 0,
+       "y": 0.0954,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.4611,
+       "h": 0.032,
+       "x": 0.0738,
+       "y": 0.2456,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/line-small-wavy-divider-034.svg",
+      "assetShape": "wave"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.0058,
+       "x": 0,
+       "y": 0.2776,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.05,
+       "y": 0.2834,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ]
+   ]
+  },
+  {
+   "order": 1,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": 0.3257,
+       "y": 0.1885,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-liquid-drop-puddle-freeform-background-025.svg",
+      "assetShape": "blob"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.1146,
+       "x": 0,
+       "y": 0.4694,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": -0.7429,
+       "y": 0.584,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-liquid-drop-puddle-freeform-background-025.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Speak With Confidence",
+       "color": "#ffffffbf",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "subtitle": {
+       "text": "Quick sessions fit busy days",
+       "color": "rgba(255,255,255,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "decoration": "none"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.0324,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2858,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.4114,
+       "h": 0.1659,
+       "x": 0.7318,
+       "y": 0.2209,
+       "anchor": "middle"
+      },
+      "rot": 30,
+      "asset": "users/appscreens/scribblesDoodles/arrow-hand-drawn-doodle-marker-curve-loop-squiggle-spiral-turn-direction-arrow-pointer-010.svg",
+      "assetShape": "generic"
+     }
+    ]
+   ]
+  },
+  {
+   "order": 2,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Track Progress With Rewards",
+       "color": "#ffffffbf",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "subtitle": {
+       "text": "Earn achievements for your skills",
+       "color": "rgba(255,255,255,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "decoration": "none"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.3903,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": 0.3147,
+       "y": 0.6437,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-liquid-drop-puddle-freeform-background-025.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": -0.6743,
+       "y": 0.1885,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-liquid-drop-puddle-freeform-background-025.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2858,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.4114,
+       "h": 0.1659,
+       "x": -0.2682,
+       "y": 0.2209,
+       "anchor": "middle"
+      },
+      "rot": 30,
+      "asset": "users/appscreens/scribblesDoodles/arrow-hand-drawn-doodle-marker-curve-loop-squiggle-spiral-turn-direction-arrow-pointer-010.svg",
+      "assetShape": "generic"
+     }
+    ]
+   ]
+  },
+  {
+   "order": 3,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": 0.7324,
+       "y": 0.4844,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/line-hand-drawn-line-hatch-crosshatch-texture-scratch-grid-doodle-010.svg",
+      "assetShape": "wave"
+     }
+    ],
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Learn 40 plus\nlanguages free",
+       "color": "#ffffffff",
+       "gradient": null,
+       "bold": true,
+       "align": "center",
+       "font": "Rubik",
+       "lineHeight": 1.15
+      },
+      "decoration": "none"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.3903,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": -0.6853,
+       "y": 0.6437,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-liquid-drop-puddle-freeform-background-025.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2858,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ]
+   ]
+  },
+  {
+   "order": 4,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Enjoy Game Like Learning",
+       "color": "rgba(34,23,80,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "subtitle": {
+       "text": "Fun challenges keep motivation high",
+       "color": "rgba(34,23,80,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1.15
+      },
+      "decoration": "none"
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 1.0347,
+       "h": 0.2809,
+       "x": -0.2676,
+       "y": 0.4844,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/line-hand-drawn-line-hatch-crosshatch-texture-scratch-grid-doodle-010.svg",
+      "assetShape": "wave"
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.9352,
+       "h": 0.2787,
+       "x": 0.5274,
+       "y": 0.6185,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-soft-bean-amoeba-doodle-accent-069.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2858,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.2417,
+       "h": 0.067,
+       "x": -0.019,
+       "y": 0.2586,
+       "anchor": "middle"
+      },
+      "rot": -52,
+      "asset": "users/appscreens/scribblesDoodles/callout-rays-large-arc-039.svg",
+      "assetShape": "generic"
+     }
+    ]
+   ]
+  },
+  {
+   "order": 5,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Build language skills in minutes",
+       "color": "rgba(255,255,255,0.75)",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "subtitle": {
+       "text": "Quick lessons fit busy days",
+       "color": "rgba(255,255,255,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "left",
+       "font": "Rubik",
+       "lineHeight": 1
+      },
+      "decoration": "none"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.3651,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.9352,
+       "h": 0.2787,
+       "x": -0.4726,
+       "y": 0.6185,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/blob-organic-abstract-fluid-soft-bean-amoeba-doodle-accent-069.svg",
+      "assetShape": "blob"
+     }
+    ],
+    [
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2858,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ]
+   ]
+  },
+  {
+   "order": 6,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "Train math\nand music",
+       "color": "rgba(121,85,254,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "center",
+       "font": "Rubik",
+       "lineHeight": 1.15
+      },
+      "decoration": "none"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.2128,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.2,
+       "x": 0.4506,
+       "y": 0.4662,
+       "anchor": "middle"
+      },
+      "rot": -21,
+      "asset": "users/appscreens/scribblesDoodles/shape-filled-cloud-puffy-020.svg",
+      "assetShape": "generic"
+     }
+    ],
+    [
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.8264,
+       "h": 0.0548,
+       "x": 0.0844,
+       "y": 0.2307,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "asset": "users/appscreens/scribblesDoodles/line-single-curved-underline-031.svg",
+      "assetShape": "wave"
+     },
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2855,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ]
+   ]
+  },
+  {
+   "order": 7,
+   "layout": "Blank",
+   "orientation": "portrait",
+   "groups": [
+    [
+     {
+      "type": "title",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.22,
+       "x": 0.0673,
+       "y": 0.0334,
+       "anchor": "middle"
+      },
+      "rot": 0,
+      "title": {
+       "text": "10M+",
+       "color": "rgba(34,23,80,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "center",
+       "font": "Cal Sans",
+       "lineHeight": 1
+      },
+      "subtitle": {
+       "text": "Happy Customers\n\u2b50 \u2b50 \u2b50 \u2b50 \u2b50",
+       "color": "rgba(34,23,80,1)",
+       "gradient": null,
+       "bold": true,
+       "align": "center",
+       "font": "Cal Sans",
+       "lineHeight": 1.2
+      },
+      "decoration": "laurelWide"
+     },
+     {
+      "type": "spacer",
+      "loc": {
+       "w": 1,
+       "h": 0.2128,
+       "x": 0,
+       "y": 0.2534,
+       "anchor": "middle"
+      },
+      "rot": 0
+     },
+     {
+      "type": "image",
+      "loc": {
+       "w": 0.8629,
+       "h": 0.2,
+       "x": -0.5494,
+       "y": 0.4662,
+       "anchor": "middle"
+      },
+      "rot": -21,
+      "asset": "users/appscreens/scribblesDoodles/shape-filled-cloud-puffy-020.svg",
+      "assetShape": "generic"
+     }
+    ],
+    [
+     {
+      "type": "device",
+      "loc": {
+       "w": 0.9,
+       "h": 0.7,
+       "x": 0.0528,
+       "y": 0.2858,
+       "anchor": "topLeft"
+      },
+      "rot": 0,
+      "device": {
+       "variant": "full",
+       "colour": "black"
+      }
+     }
+    ]
+   ]
+  }
+ ],
+ "primaryColor": "rgba(121,85,254,1)"
+}

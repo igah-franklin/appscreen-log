@@ -7,6 +7,8 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    // The API has its own tsconfig and typecheck script.
+    "server/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

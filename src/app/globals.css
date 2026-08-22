@@ -236,6 +236,150 @@
   transition: background-color 0.2s ease;
 }
 
+/* Designer button system (matches the reference editor's .btn scale) */
+.btn {
+  position: relative;
+  display: inline-flex;
+  height: auto;
+  min-height: 0;
+  flex-shrink: 0;
+  user-select: none;
+  align-items: center;
+  column-gap: 0.25rem;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn:active {
+  transform: scale(0.95);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn:disabled:active {
+  transform: none;
+}
+.btn.btn-primary {
+  background-color: rgb(79 70 229);
+  color: #fff;
+}
+.btn.btn-primary:hover:not(:disabled) {
+  background-color: rgb(99 102 241);
+}
+.btn.btn-secondary {
+  background-color: rgb(199 210 254);
+  color: rgb(67 56 202);
+}
+.btn.btn-secondary:hover:not(:disabled) {
+  background-color: rgb(165 180 252);
+}
+.btn.btn-success {
+  background-color: rgb(134 239 172);
+  color: rgb(22 101 52);
+}
+.btn.btn-success:hover:not(:disabled) {
+  background-color: rgb(74 222 128);
+}
+.btn.btn-danger {
+  background-color: rgb(252 165 165);
+  color: rgb(153 27 27);
+}
+.btn.btn-danger:hover:not(:disabled) {
+  background-color: rgb(248 113 113);
+}
+.btn.btn-light {
+  background-color: rgb(229 231 235);
+  color: rgb(31 41 55);
+}
+.btn.btn-light:hover:not(:disabled) {
+  background-color: rgb(209 213 219);
+}
+.btn.btn-warning {
+  background-color: rgb(252 211 77);
+  color: rgb(120 53 15);
+}
+.btn.btn-warning:hover:not(:disabled) {
+  background-color: rgb(251 191 36);
+}
+.btn.btn-pro {
+  background-image: linear-gradient(to bottom right, #ec4899, #fb923c);
+  color: #fff;
+}
+.fab {
+  border-radius: 9999px;
+  padding: 0.75rem;
+}
+
+/* Split button group (save / undo + history) */
+.save-split {
+  display: inline-flex;
+  align-items: center;
+}
+.save-split.has-toggle > .btn:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.save-split-toggle {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  margin-left: 1px;
+}
+
+/* Canvas strip */
+.screenshots {
+  display: flex;
+  padding: 10px;
+  overflow-x: auto;
+}
+.screenshot {
+  margin-right: 10px;
+  position: relative;
+  flex: none;
+}
+
+/* Floating zoom pill */
+.scene-floating-toolbar {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  padding: 5px;
+  background: rgba(24, 24, 27, 0.9);
+  box-shadow: rgba(24, 24, 27, 0.22) 0 12px 28px 0;
+}
+.scene-floating-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: rgb(244 244 245);
+  font-size: 12px;
+  font-weight: 700;
+}
+.scene-floating-toolbar-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.scene-floating-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Text-only link buttons used inside template cards */
 .btn-link {
   position: relative;
