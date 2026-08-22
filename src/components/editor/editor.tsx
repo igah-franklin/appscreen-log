@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   DEFAULT_OUTPUTS,
   OUTPUT_BY_ID,
@@ -19,7 +18,13 @@ import {
 } from "@/lib/editor-model";
 import { drawScreen, loadImage } from "@/lib/render";
 import { TEMPLATES } from "@/data/templates";
-import { api, type ApiProject } from "@/lib/api";
+import {
+  api,
+  clearActiveProject,
+  getActiveProject,
+  setActiveProject,
+  type ApiProject,
+} from "@/lib/api";
 import { LayeredEditor } from "./layered-editor";
 import { previewUrl } from "@/lib/images";
 import { ScreenCanvas } from "./screen-canvas";
@@ -68,9 +73,27 @@ function ToolbarButton({
 }
 
 export function Editor() {
-  const params = useSearchParams();
-  const templateId = params.get("template");
-  const projectId = params.get("project");
+  const [templateId] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("template"),
+  );
+  /* The sandbox opens whatever project is active; the id is never in the URL. */
+  const [projectId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return (
+      new URLSearchParams(window.location.search).get("project") ??
+      getActiveProject()
+    );
+  });
+
+  /* A ?project= link is honoured once, then persisted and stripped. */
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("project");
+    if (!fromUrl) return;
+    setActiveProject(fromUrl);
+    window.history.replaceState(null, "", "/user/sandbox");
+  }, []);
 
   /* Projects copied from a template live on the API and use the layer editor. */
   const [apiProject, setApiProject] = useState<ApiProject | null>(null);
@@ -287,7 +310,7 @@ export function Editor() {
         <LayeredEditor
           initial={apiProject}
           onExit={() => {
-            window.history.replaceState(null, "", "/user/sandbox");
+            clearActiveProject();
             setApiProject(null);
           }}
         />

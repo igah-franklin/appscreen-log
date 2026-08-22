@@ -83,10 +83,14 @@ sheet:
 - **Copy Template to Account** — copies the design into a kept project.
 - **Copy Template to Sandbox** — copies the design into a temporary project.
 
-Either copy `POST`s to the API and opens `/user/sandbox?project=<id>`, where the
+Either copy `POST`s to the API, stores the new project id as the active project
+and opens plain **`/user/sandbox`** — the id never appears in the URL. The
 template renders with its own captions, colours, decoration slots and device
 frames, and every caption / app screen / colour is editable. Edits autosave back
-to MongoDB, so reloading the URL restores them.
+to MongoDB, so reloading `/user/sandbox` restores them.
+
+A `?project=<id>` link still works as a deep link: it is adopted once, stored,
+and stripped from the address bar.
 
 ## The editor
 
@@ -172,8 +176,11 @@ starter layout that keeps the template's palette, orientation and shot count.
 
 ## Known gaps
 
-- **One template (`tRiGP`, Kova) ships with a captured design.** The rest use the
-  generated fallback until more are captured with the tool above.
+- **Two templates (Kova, Pluto) ship with byte-exact captured designs.** Every
+  other template opens with a generated starter layout that has the *same layer
+  structure* — background wash, two decoration slots, a wave accent, caption and
+  device — so all 175 show the full set of edit sections; only the artwork and
+  exact geometry differ from the reference. Capture more with the tool above.
 - **Decoration slots render as tinted placeholder shapes.** The reference's
   artwork lives in its own asset library behind an export-protected canvas, so
   only the slot's position, size and shape family are reproduced; drop your own

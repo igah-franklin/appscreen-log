@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { api, setActiveProject } from "@/lib/api";
 import { CreateProjectDialog, type CreateOption } from "./create-project-dialog";
 import { MenuGlyph, ShapesIcon } from "./icons";
 
@@ -30,7 +30,8 @@ export function StartWithTemplate({ templateId }: { templateId: string }) {
         templateId,
         option === "account" ? "account" : "sandbox",
       );
-      router.push(`/user/sandbox?project=${project.projectId}`);
+      setActiveProject(project.projectId);
+      router.push("/user/sandbox");
     } catch (e) {
       setBusy(null);
       setError(

@@ -111,6 +111,23 @@ export const api = {
     }),
 };
 
+const ACTIVE_KEY = "appscreens.activeProject";
+
+/** The project the sandbox opens. Kept in storage so the URL stays clean. */
+export function setActiveProject(projectId: string) {
+  if (typeof window !== "undefined")
+    window.localStorage.setItem(ACTIVE_KEY, projectId);
+}
+
+export function getActiveProject(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(ACTIVE_KEY);
+}
+
+export function clearActiveProject() {
+  if (typeof window !== "undefined") window.localStorage.removeItem(ACTIVE_KEY);
+}
+
 /** Stable per-browser key so sandbox projects can be listed again later. */
 export function ownerKey() {
   if (typeof window === "undefined") return undefined;
