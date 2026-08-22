@@ -28,9 +28,38 @@ npm run dev
   and `Clear filters`.
 - **Category routes** — all 37 `/templates/<slug>` pages with the reference's
   headings, descriptions, breadcrumbs and membership.
+- **Template detail screen** — `/template/app-store-screenshots/<slug>/<id>` for
+  all 175 templates: breadcrumb, full-bleed screenshot rail, title and tag
+  pills, Specifications, Start with Template / Copy to Account, share row,
+  About, Screenshot dimensions, and a related "More templates" grid.
+- **Editor** — `/user/sandbox`, described below.
 - **FAQ** — nine independently expandable questions.
 - **Footer** — closing CTA, arched gradient plate, four link columns, social
   row, and copyright line.
+
+## The editor
+
+`/user/sandbox` is a working screenshot designer, not a mockup.
+
+- **Projects** — blank, or seeded from a template via *Start with Template*
+  (which carries over the shot count, orientation, theme palette and reference
+  previews). Autosaves to `localStorage`.
+- **Screens** — add via the layout selector (blank / device only / text above /
+  text below), reorder, duplicate, delete, undo.
+- **Editing panels** — Layouts & Elements, Background (none / solid / gradient
+  with colour + angle, or an uploaded image), Title (text, subtitle, floating
+  position, bold / italic / underline, alignment, colour, font family, size),
+  and Device (upload your app screen, size, vertical offset, drop shadow).
+- **Output sizes** — the reference's Android and Apple presets at their real
+  store dimensions (e.g. iPhone 6.9" 1320×2868, Android 16:9 2160×3840, Apple
+  Watch 410×502). Switching output re-renders every screen with the matching
+  device frame.
+- **Export** — renders each screen to a canvas at full store resolution and
+  downloads PNGs, either for the current size or every selected output size,
+  with a progress readout.
+
+Preview and export share one renderer (`src/lib/render.ts`), so the canvas in
+the editor is exactly what the exported file contains.
 
 ## Data
 
@@ -44,7 +73,14 @@ Screenshot previews are loaded from the reference site's own image proxy
 (`Geist Sans` / `Geist Mono`) and background art are self-hosted under
 `public/assets`.
 
-## Not in scope
+## Known gaps
 
-`/template/app-store-screenshots/<slug>/<id>` detail pages are linked but not
-implemented — the reference for this build was the templates listing page.
+- The reference stores each template's layout as private project data, so
+  *Start with Template* reproduces a template's shot count, orientation, theme
+  palette and reference previews — not its exact per-screen artwork.
+- Detail-page tags are derived from each template's category membership plus
+  its skill and theme facets. The reference also carries a few hand-authored
+  style tags ("multi layered", "gradient", "graphics") and a bespoke opening
+  paragraph per template, which are not public data.
+- `/` redirects to `/templates`; the marketing home page, `/pricing`, `/blog`
+  and the account area are outside this build.

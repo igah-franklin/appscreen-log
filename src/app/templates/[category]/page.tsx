@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Hero } from "@/components/hero";
 import { TemplateCatalog } from "@/components/template-catalog";
 import { FaqSection } from "@/components/faq-section";
+import { SiteFooter } from "@/components/site-footer";
 import { CATEGORIES, CATEGORY_BY_SLUG } from "@/data/categories";
 
 export function generateStaticParams() {
@@ -61,6 +62,7 @@ export default async function CategoryPage({
         </div>
       </div>
       <FaqSection />
+      <SiteFooter />
     </>
   );
 }

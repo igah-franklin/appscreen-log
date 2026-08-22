@@ -19,7 +19,17 @@ const COLUMN_ICONS = {
   legal: FooterLegalIcon,
 };
 
-export function SiteFooter() {
+export function SiteFooter({
+  ctaLead = "Start with",
+  ctaAccent = "this",
+  ctaTail = "template library",
+  ctaBody = "Choose a responsive AppScreens template, add your app screens, and export store-ready App Store and Google Play screenshots from one design.",
+}: {
+  ctaLead?: string;
+  ctaAccent?: string;
+  ctaTail?: string;
+  ctaBody?: string;
+} = {}) {
   return (
     <section className="isolate overflow-hidden bg-zinc-900">
       <div className="mx-auto h-[0.75px] w-full max-w-screen-lg bg-gradient-to-r from-transparent via-violet-100/15 to-transparent" />
@@ -29,26 +39,24 @@ export function SiteFooter() {
         <div className="mx-auto w-full max-w-screen-xl px-5 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <div className="relative z-10 flex flex-col items-center">
             <h2 className="leading-extratight max-w-5xl text-center text-4xl font-bold text-violet-100 sm:text-5xl sm:leading-tight">
-              Start with{" "}
+              {ctaLead}{" "}
               <span className="relative inline-block text-nowrap">
                 <span className="relative z-10 bg-gradient-to-b from-violet-400 via-violet-400 to-violet-500 bg-clip-text text-transparent">
                   {" "}
-                  this{" "}
+                  {ctaAccent}{" "}
                 </span>
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute -top-px left-0 -z-10 select-none text-violet-300"
                 >
                   {" "}
-                  this{" "}
+                  {ctaAccent}{" "}
                 </span>
               </span>{" "}
-              template library
+              {ctaTail}
             </h2>
             <p className="mt-5 max-w-xl whitespace-pre-line text-center text-[17px] leading-8 text-zinc-200 sm:text-lg sm:leading-8">
-              Choose a responsive AppScreens template, add your app screens, and
-              export store-ready App Store and Google Play screenshots from one
-              design.
+              {ctaBody}
             </p>
             <div className="mt-8 flex items-center justify-center space-x-3 sm:space-x-5">
               <button

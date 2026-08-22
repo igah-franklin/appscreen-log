@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/hero";
 import { TemplateCatalog } from "@/components/template-catalog";
 import { FaqSection } from "@/components/faq-section";
+import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title:
@@ -25,6 +26,7 @@ export default function TemplatesPage() {
         </div>
       </div>
       <FaqSection />
+      <SiteFooter />
     </>
   );
 }

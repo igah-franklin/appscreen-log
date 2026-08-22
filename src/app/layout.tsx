@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { TopNav } from "@/components/top-nav";
-import { SiteFooter } from "@/components/site-footer";
 import { ChatLauncher } from "@/components/chat-launcher";
 
 export const metadata: Metadata = {
@@ -21,7 +20,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="bg-zinc-900">
         <TopNav />
         <main className="min-h-[calc(100vh-64px)] bg-white">{children}</main>
-        <SiteFooter />
         <ChatLauncher />
       </body>
     </html>

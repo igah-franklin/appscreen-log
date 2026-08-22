@@ -44,7 +44,10 @@ export function TemplateCard({ template }: { template: Template }) {
           </div>
         </div>
         <div className="flex space-x-5" ref={wrap}>
-          <Link className="btn-link btn-success" href={href}>
+          <Link
+            className="btn-link btn-success"
+            href={`/user/sandbox?template=${template.id}`}
+          >
             <ShapesIcon className="h-3.5 w-3.5 align-middle" />
             Start with Template
           </Link>
