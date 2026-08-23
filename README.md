@@ -50,6 +50,33 @@ The API listens on `:4000`; point the front end elsewhere with
 - **Footer** — closing CTA, arched gradient plate, four link columns, social
   row, and copyright line.
 
+### Device frames
+
+The reference composites a photographic device PNG per output size, served from
+`appscreens.com/assets/frames/<variant>/<device>/<colour>.png` — the frame has a
+transparent screen cutout, so the app screen is drawn into the cutout and the
+frame laid over it. Those responses carry no CORS header, so the API proxies
+them (`/api/frames/...`), caching each to `server/data/frames/` and re-serving
+it with `access-control-allow-origin` — without which drawing one would taint
+the canvas and break PNG export.
+
+`src/lib/frames.ts` maps each output size to the frame the reference itself
+loads for it (`iPhones - 6.9"` → `iosphone67island`, `Android Phones - 16:9` →
+`andgals25`, `iPad - 13"` → `iostabx`, `Android 10" Tablets` → `andgaltabs8`,
+…), and picks the colour from the layer's own `deviceType`.
+
+Finding the cutout takes some care, because the frame is a device on a
+*transparent background* — the pixels outside the body look exactly like the
+screen, so scanning inward from the edges finds nothing, and the cutout's
+bounding-box corners land outside the body where the image is transparent too.
+So the cutout is traced instead: each row is measured outward from two
+reference columns a quarter of the way in from each side (clear of the side
+buttons and of a notch or Dynamic Island, which are opaque and sit *within* the
+screen), and the resulting outline is kept as a `Path2D`. The app screen is
+drawn in the frame image's own coordinates clipped to that path, so it lands
+exactly inside the glass at any scale, with the frame over the top. `dynamic`
+and frameless devices are still drawn on the canvas, as they are upstream.
+
 ## Backend
 
 `server/` — Node + Express + TypeScript + Mongoose.
@@ -57,6 +84,7 @@ The API listens on `:4000`; point the front end elsewhere with
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/health` | liveness |
+| `GET` | `/api/frames/:variant/:device/:colour.png` | device frame proxy (see below) |
 | `GET` | `/api/templates` | catalog listing (`category`, `q`, `free`, `simple`, `orientation`, `theme`, `limit`, `skip`) |
 | `GET` | `/api/templates/:templateId` | one template incl. its design payload |
 | `PUT` | `/api/templates/:templateId/layout` | ingest a captured design (see `tools/`) |
@@ -139,15 +167,34 @@ rebuilt to the reference's own measurements:
 - **Direct selection** — hovering any element on a screenshot outlines it with a
   dashed rectangle; clicking it selects the screenshot, opens the panel and
   expands that element's own section (the selected element keeps an indigo
-  dashed outline).
-- **Per-element panels** carry the reference's controls: *Title* has Include
-  Subtitle, Floating position, the bold/italic/underline/colour/gradient/align/
-  line-spacing/text-background toolbar, Font Family, Decoration (all 20 shapes)
-  and Match text size; *Device* has Device type, Device style, Device
-  orientation, Fit, Vertical position and Add screenshots; *Image* has Fit,
-  Vertical position, SVG style and Select Image; *Background* has Panoramic,
-  the none/solid/gradient styles with colours and angle, Select Background and
-  Pattern.
+  dashed outline). Opening a section scrolls only the panel: `scrollIntoView`
+  walks every scrollable ancestor, which used to drag the horizontal strip
+  sideways and make the canvas jump.
+- **Edits repaint one screen.** Every change produces a new project object, but
+  a repaint is a full store-resolution draw, so the canvas keys off its own
+  screen plus the project-wide styling that reaches it rather than the whole
+  project.
+- **Per-element panels** carry the reference's controls, and every property a
+  captured design stores is reachable from them:
+  - *Title* — Include Subtitle, Floating position, the bold/italic/underline/
+    colour/gradient/align/line-spacing/text-background toolbar, Font Family,
+    Decoration (all 20 shapes), letter spacing and max size, plus the
+    subtitle's own font, colour, style and alignment.
+  - *Device* — Device type (real / flat / dynamic frame / none), Device style,
+    frame colour, orientation, Fit, Vertical position, Add screenshots, and the
+    dynamic frame's own colour, width, padding and padding colour.
+  - *Image* — a transparency-checkered preview of the artwork, Fit, Vertical
+    position, and the reference's SVG style split into an independent **colour
+    overlay** and **border / stroke**, each none / solid / gradient.
+  - *Shape* — shape kind, corner radius or line direction, and fill and border
+    as colour or gradient.
+  - *Background* — Panoramic, the none/solid/gradient styles with colours and
+    angle, Select Background with its fit, and Pattern.
+  - Every element also has working opacity, rotation and exact-dimension
+    controls in its row.
+- **Globals** — the toolbar's Globals sheet sets the project-wide title and
+  subtitle fonts, background and accent colour; captions authored with the
+  "Global" font follow them.
 - **Export** — renders every screen at every selected output size and downloads
   a single `.zip`, foldered by size (`iphone-6-9/01.png`), with a progress
   readout. The archive is written by a small built-in ZIP writer
@@ -215,16 +262,18 @@ starter layout that keeps the template's palette, orientation and shot count.
 
 ## Known gaps
 
-- **Device frames are drawn, not photographed.** The reference composites a
-  photographic frame PNG per device; this build draws the frame on the canvas
-  from `FRAME_SPECS`, so bezel and corner detail differ slightly. The `full`,
-  `dynamic` and frameless treatments are reproduced; the two perspective-warped
-  ones (`warpleft` / `warpright`, 29 elements across the set) render flat.
+- **Perspective-warped devices render flat.** `warpleft` / `warpright` (29
+  elements across the set) use their own frame photograph but are not skewed.
+- Sizes the reference has no frame photograph for — Apple Vision Pro and the
+  Google Play feature graphic — stay frameless, as they do upstream.
 - **Caption decorations are rebuilt, not copied.** Laurels, badges, bubbles and
   the rest are redrawn to the reference's silhouettes rather than shipped as its
   vector set, so they read the same at a glance but are not identical curves.
 - Text rasterises differently from the reference's own renderer, so line breaks
   can fall a word earlier or later on a very tight caption.
+- `compare-fidelity.mjs` compares against a fixed grid, so it under-scores
+  templates whose output aspect differs from the preview image — the Apple
+  Watch ones especially.
 - No authentication: "Copy to Account" marks the project as kept and scopes it
   to a per-browser key rather than a real login.
 - `/` redirects to `/templates`; the marketing home page, `/pricing`, `/blog`

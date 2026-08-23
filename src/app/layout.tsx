@@ -5,9 +5,9 @@ import { ChatLauncher } from "@/components/chat-launcher";
 
 export const metadata: Metadata = {
   title:
-    "AppScreens: App Screenshot Templates for App Store & Google Play",
+    "screenKit: App Screenshot Templates for App Store & Google Play",
   description:
-    "AppScreens helps you create App Store and Google Play screenshots in minutes with templates, localization, store-ready exports, and direct upload.",
+    "screenKit helps you create App Store and Google Play screenshots in minutes with templates, localization, store-ready exports, and direct upload.",
   icons: {
     icon: "/favicon.png",
     apple: "/apple-touch-icon.png",

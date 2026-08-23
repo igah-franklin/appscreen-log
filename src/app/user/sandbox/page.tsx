@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { EditorClient } from "@/components/editor/editor-client";
 
 export const metadata: Metadata = {
-  title: "AppScreens: Sandbox App Store Screenshot Designer",
+  title: "screenKit: Sandbox App Store Screenshot Designer",
   description:
     "Design App Store and Google Play screenshots in the browser, then export store-ready sizes.",
 };

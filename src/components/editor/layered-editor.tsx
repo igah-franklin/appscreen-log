@@ -9,9 +9,11 @@ import { hitTest, elementKey, type ElementRef } from "@/lib/hit-test";
 import { createZip, type ZipEntry } from "@/lib/zip";
 import { screenAssetUrls } from "@/lib/assets";
 import { ensureFonts, screenFonts } from "@/lib/fonts";
+import { frameUrl, warmFrame } from "@/lib/frames";
 import { LayeredCanvas } from "./layered-canvas";
 import { OutputSizeMenu } from "./output-size-menu";
 import { OutputSizesDialog } from "./output-sizes-dialog";
+import { GlobalsDialog } from "./globals-dialog";
 import { SceneEditPanel } from "./scene-edit-panel";
 import { SceneToolbar } from "./scene-toolbar";
 import { SmallScreenNotice } from "./small-screen-notice";
@@ -39,6 +41,7 @@ export function LayeredEditor({
   const [status, setStatus] = useState<string | null>(null);
   const [showSizeMenu, setShowSizeMenu] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
+  const [showGlobals, setShowGlobals] = useState(false);
   const saveTimer = useRef<number | null>(null);
   const dirty = useRef(false);
 
@@ -59,6 +62,8 @@ export function LayeredEditor({
           activeOutput: project.activeOutput,
           background: project.background,
           primaryColor: project.primaryColor,
+          titleFont: project.titleFont,
+          subtitleFont: project.subtitleFont,
           screens: project.screens,
         });
         setStatus("Saved");
@@ -145,6 +150,14 @@ export function LayeredEditor({
         await ensureFonts(
           screenFonts(screen, project.titleFont, project.subtitleFont),
         );
+        for (const group of screen.groups) {
+          for (const el of group) {
+            if (el.type !== "device") continue;
+            const variant = el.device?.variant ?? "full";
+            if (variant === "none" || variant === "dynamic") continue;
+            await warmFrame(frameUrl(size.id, variant, el.device?.colour ?? "black"));
+          }
+        }
         for (const src of screenAssetUrls(screen)) {
           if (!cache.has(src)) {
             try {
@@ -209,6 +222,7 @@ export function LayeredEditor({
           onClear={() => mutate((p) => ({ ...p, screens: [] }))}
           onRestyle={() => flash("Restyle is not available in this build")}
           onOpenSizes={() => setShowSizes(true)}
+          onOpenGlobals={() => setShowGlobals(true)}
           onOpenBackground={() => setSelected(0)}
           onOpenLocalize={() => flash(`Language: ${project.language}`)}
           onOpenScreens={() => setSelected(0)}
@@ -389,6 +403,14 @@ export function LayeredEditor({
             <KeyboardIcon className="h-4 w-4" />
           </button>
         </div>
+
+        {showGlobals && (
+          <GlobalsDialog
+            project={project}
+            onClose={() => setShowGlobals(false)}
+            onChange={(part) => mutate((p) => ({ ...p, ...part }))}
+          />
+        )}
 
         {showSizes && (
           <OutputSizesDialog

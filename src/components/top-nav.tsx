@@ -15,7 +15,7 @@ const LINKS = [
   { label: "Home", href: "/" },
   { label: "Templates", href: "/templates" },
   { label: "Sandbox", href: "/user/sandbox" },
-  { label: "Pricing", href: "/pricing" },
+  // { label: "Pricing", href: "/pricing" },
 ];
 
 function MenuPanel({
@@ -30,9 +30,8 @@ function MenuPanel({
   return (
     <div
       role="menu"
-      className={`absolute z-50 mt-1 min-w-[15rem] overflow-hidden rounded bg-white py-2 text-gray-900 shadow-[0_2px_4px_-1px_rgba(0,0,0,.2),0_4px_5px_0_rgba(0,0,0,.14),0_1px_10px_0_rgba(0,0,0,.12)] ${
-        align === "right" ? "right-0" : "left-0"
-      } ${className}`}
+      className={`absolute z-50 mt-1 min-w-[15rem] overflow-hidden rounded bg-white py-2 text-gray-900 shadow-[0_2px_4px_-1px_rgba(0,0,0,.2),0_4px_5px_0_rgba(0,0,0,.14),0_1px_10px_0_rgba(0,0,0,.12)] ${align === "right" ? "right-0" : "left-0"
+        } ${className}`}
     >
       {items.map((item) => {
         const content = (
@@ -97,7 +96,7 @@ export function TopNav() {
         <div className="relative flex h-16 items-center justify-between">
           <div className="flex flex-1 items-stretch justify-start">
             <div className="flex flex-shrink-0 items-center">
-              <Link href="/" className="logo" aria-label="AppScreens home">
+              <Link href="/" className="logo" aria-label="screenKit home">
                 <Logo width="190px" color="#ffffff" />
               </Link>
               <span className="flex-shrink flex-grow select-none text-white">
@@ -114,9 +113,8 @@ export function TopNav() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`nav-btn hidden lg:inline-flex ${
-                    isActive(l.href) ? "bg-violet-500/15" : "hover:bg-white/[.06]"
-                  }`}
+                  className={`nav-btn hidden lg:inline-flex ${isActive(l.href) ? "bg-violet-500/15" : "hover:bg-white/[.06]"
+                    }`}
                 >
                   <span className="text-white">{l.label}</span>
                 </Link>

@@ -3,6 +3,7 @@ import type { OutputSize } from "./devices";
 import { FRAME_SPECS } from "./devices";
 import { assetUrl } from "./assets";
 import { gradientAngle, gradientStops, isGradient } from "./gradient";
+import { frameUrl, readyFrame } from "./frames";
 
 /**
  * Renders a captured template layout. Every element is positioned as a
@@ -75,7 +76,7 @@ export async function drawLayeredScreen(
       if (typeof el.opacity === "number" && el.opacity < 1) {
         ctx.globalAlpha = Math.max(0, el.opacity);
       }
-      if (el.shadow) {
+      if (isAuthoredShadow(el.shadow)) {
         /* Shadow offsets and blur are authored as fractions of the box. */
         ctx.shadowColor = el.shadow.color;
         ctx.shadowBlur = el.shadow.blur * box.w;
@@ -107,6 +108,8 @@ export async function drawLayeredScreen(
         drawDecoration(ctx, el, box, accent, images);
       } else if (el.type === "device") {
         drawDevice(ctx, el, box, output, images);
+      } else if (el.type === "shape") {
+        drawShape(ctx, el, box, W);
       }
       ctx.restore();
     }
@@ -698,7 +701,17 @@ function drawDecoration(
   /* Real artwork when the slot's asset has loaded, tinted if the layout asks. */
   const art = lookup(images, el.asset) ?? lookup(images, el.device?.screenshot);
   if (art) {
-    drawArtwork(ctx, art, box, el.fit ?? "contain", el.vPos ?? "center", el.svgColor);
+    drawArtwork(
+      ctx,
+      art,
+      box,
+      el.fit ?? "contain",
+      el.vPos ?? "center",
+      el.svgColor,
+      el.svgStrokeColor && el.svgStrokeWidth
+        ? { color: el.svgStrokeColor, width: el.svgStrokeWidth }
+        : undefined,
+    );
     return;
   }
 
@@ -838,7 +851,55 @@ function drawDevice(
   const frameless = variant === "none";
   const dynamic = variant === "dynamic";
 
-  /* Fit the device into the element box, preserving the frame's aspect ratio. */
+  /*
+   * The reference composites a photographic frame for `full` and the two warp
+   * variants. When that image is loaded, use it: the app screen goes into its
+   * transparent cutout and the frame is laid over the top. Otherwise fall back
+   * to drawing the frame, which is also what `dynamic` and frameless want.
+   */
+  const photo = !frameless && !dynamic
+    ? readyFrame(frameUrl(output.id, variant, el.device?.colour ?? "black"))
+    : undefined;
+
+  if (photo) {
+    const aspect = photo.size.h / photo.size.w;
+    let fw = box.w;
+    let fh = fw * aspect;
+    if (fh > box.h) {
+      fh = box.h;
+      fw = fh / aspect;
+    }
+    const fx = box.x + (box.w - fw) / 2;
+    const fy = el.loc.anchor === "middle" ? box.y + (box.h - fh) / 2 : box.y;
+
+    /*
+     * Draw the app screen in the frame image's own coordinates, clipped to the
+     * traced cutout, so it lands exactly inside the glass however the frame is
+     * scaled. The frame itself then goes over the top.
+     */
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.scale(fw / photo.size.w, fh / photo.size.h);
+    ctx.clip(photo.path);
+    const shot = lookup(images, el.device?.screenshot);
+    if (shot) {
+      drawFitted(ctx, shot, photo.screen, el.fit ?? "cover", el.vPos ?? "center");
+    } else {
+      drawPlaceholderUi(
+        ctx,
+        photo.screen.x,
+        photo.screen.y,
+        photo.screen.w,
+        photo.screen.h,
+      );
+    }
+    ctx.restore();
+
+    ctx.drawImage(photo.image, fx, fy, fw, fh);
+    return;
+  }
+
+  /* Fit the drawn frame into the element box, preserving its aspect ratio. */
   let w = box.w;
   let h = w * spec.aspect;
   if (h > box.h) {
@@ -849,6 +910,13 @@ function drawDevice(
   const y = el.loc.anchor === "middle" ? box.y + (box.h - h) / 2 : box.y;
 
   const body = frameColour(el.device);
+  const isLight =
+    el.device?.style === "real-light" ||
+    el.device?.style === "flat-light" ||
+    el.device?.colour === "white" ||
+    el.device?.colour === "silver" ||
+    el.device?.colour === "light";
+
   const bezel = frameless
     ? 0
     : dynamic
@@ -856,12 +924,75 @@ function drawDevice(
       : w * spec.bezel;
   const radius = w * (frameless ? spec.radius * 0.42 : spec.radius);
 
-  if (!frameless) {
+  if (!frameless && !dynamic) {
+    /* 1. Hardware side buttons (Power button right, Volume & Action buttons left) */
+    const isPhoneOrTablet = kind === "iphone" || kind === "android" || kind === "ipad";
+    const flat = el.device?.style === "flat-dark" || el.device?.style === "flat-light";
+    if (isPhoneOrTablet && !flat) {
+      ctx.save();
+      ctx.fillStyle = body;
+      const btnW = Math.max(2, w * 0.014);
+
+      // Right Side Power Button
+      const pY = y + h * 0.22;
+      const pH = h * 0.11;
+      roundRect(ctx, x + w, pY, btnW, pH, btnW / 2);
+      ctx.fill();
+
+      // Left Side Action Button
+      const aY = y + h * 0.14;
+      const aH = h * 0.038;
+      roundRect(ctx, x - btnW, aY, btnW, aH, btnW / 2);
+      ctx.fill();
+
+      // Left Side Volume Up
+      const v1Y = y + h * 0.21;
+      const vH = h * 0.065;
+      roundRect(ctx, x - btnW, v1Y, btnW, vH, btnW / 2);
+      ctx.fill();
+
+      // Left Side Volume Down
+      const v2Y = y + h * 0.295;
+      roundRect(ctx, x - btnW, v2Y, btnW, vH, btnW / 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /* 2. Device Body with Soft Ambient Shadow */
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.32)";
+    ctx.shadowBlur = w * 0.095;
+    ctx.shadowOffsetY = w * 0.035;
+    ctx.fillStyle = body;
+    roundRect(ctx, x, y, w, h, radius);
+    ctx.fill();
+    ctx.restore();
+
+    /* 3. Outer Metallic Rim Highlight */
+    ctx.save();
+    ctx.strokeStyle = isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)";
+    ctx.lineWidth = Math.max(1, w * 0.005);
+    roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, radius);
+    ctx.stroke();
+    ctx.restore();
+
+    /* 4. Top Speaker Earphone Slit */
+    if (isPhoneOrTablet && !flat) {
+      ctx.save();
+      const spW = w * 0.12;
+      const spH = Math.max(1.5, w * 0.006);
+      ctx.fillStyle = isLight ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.2)";
+      roundRect(ctx, x + (w - spW) / 2, y + bezel * 0.35, spW, spH, spH / 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (!frameless) {
+    /* Dynamic frame */
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.3)";
     ctx.shadowBlur = w * 0.08;
     ctx.shadowOffsetY = w * 0.025;
-    ctx.fillStyle = dynamic ? el.device?.frameColor ?? body : body;
+    ctx.fillStyle = el.device?.frameColor ?? body;
     roundRect(ctx, x, y, w, h, radius);
     ctx.fill();
     ctx.restore();
@@ -877,14 +1008,16 @@ function drawDevice(
     ctx.restore();
   }
 
+  /* 5. Screen Well / Screenshot Clipping */
   const inset = bezel + pad;
   const sx = x + inset;
   const sy = y + inset;
   const sw = w - inset * 2;
   const sh = h - inset * 2;
+  const sr = Math.max(radius - inset, 3);
 
   ctx.save();
-  roundRect(ctx, sx, sy, sw, sh, Math.max(radius - inset, 2));
+  roundRect(ctx, sx, sy, sw, sh, sr);
   ctx.clip();
   const img = lookup(images, el.device?.screenshot);
   if (img) {
@@ -898,15 +1031,51 @@ function drawDevice(
   } else {
     drawPlaceholderUi(ctx, sx, sy, sw, sh);
   }
+
+  /* 6. Home Bar Indicator (over screenshot near bottom) */
+  const flat = el.device?.style === "flat-dark" || el.device?.style === "flat-light";
+  if (!frameless && !flat && (kind === "iphone" || kind === "ipad")) {
+    const hw = sw * 0.35;
+    const hh = Math.max(3, sw * 0.012);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    roundRect(ctx, sx + (sw - hw) / 2, sy + sh - sw * 0.032, hw, hh, hh / 2);
+    ctx.fill();
+  }
+
   ctx.restore();
 
-  const flat = el.device?.style === "flat-dark" || el.device?.style === "flat-light";
+  /* 7. Dynamic Island / Camera Notch (over screen top) */
   if (spec.notch && !frameless && !dynamic && !flat) {
-    const nw = sw * 0.34;
-    const nh = sw * 0.085;
-    ctx.fillStyle = body;
-    roundRect(ctx, sx + (sw - nw) / 2, sy + nh * 0.35, nw, nh, nh / 2);
+    ctx.save();
+    const nw = sw * 0.28;
+    const nh = sw * 0.062;
+    const nx = sx + (sw - nw) / 2;
+    const ny = sy + sw * 0.022;
+
+    // Dynamic Island Pill
+    ctx.fillStyle = "#000000";
+    roundRect(ctx, nx, ny, nw, nh, nh / 2);
     ctx.fill();
+
+    // Camera Lens Reflection inside Island
+    ctx.beginPath();
+    ctx.arc(nx + nw * 0.72, ny + nh / 2, nh * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = "#0a0a14";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(nx + nw * 0.72 + nh * 0.05, ny + nh / 2 - nh * 0.05, nh * 0.08, 0, Math.PI * 2);
+    ctx.fillStyle = "#1e2238";
+    ctx.fill();
+    ctx.restore();
+  } else if (kind === "android" && !frameless && !dynamic && !flat) {
+    // Android Punch-hole Camera
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(sx + sw / 2, sy + sw * 0.038, sw * 0.02, 0, Math.PI * 2);
+    ctx.fillStyle = "#000000";
+    ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -969,6 +1138,93 @@ function roundRect(
   ctx.closePath();
 }
 
+/**
+ * Shape layers — rectangles (optionally rounded), ellipses and rules.
+ *
+ * `cornerRadius` and `strokeWidth` are authored in pixels against the
+ * reference's own 1320px-wide canvas, so both scale with the output width.
+ */
+function drawShape(
+  ctx: CanvasRenderingContext2D,
+  el: ApiElement,
+  box: { x: number; y: number; w: number; h: number },
+  W: number,
+) {
+  const shape = el.shape;
+  if (!shape) return;
+  const scale = W / 1320;
+  const fill = shape.fill
+    ? isGradient(shape.fill)
+      ? cssGradient(ctx, shape.fill, box)
+      : shape.fill
+    : null;
+  const stroke = shape.stroke
+    ? isGradient(shape.stroke)
+      ? cssGradient(ctx, shape.stroke, box)
+      : shape.stroke
+    : null;
+  const lineWidth = (shape.strokeWidth ?? 0) * scale;
+
+  ctx.save();
+  if (shape.kind === "ellipse" || shape.kind === "circle") {
+    ctx.beginPath();
+    ctx.ellipse(
+      box.x + box.w / 2,
+      box.y + box.h / 2,
+      box.w / 2,
+      box.h / 2,
+      0,
+      0,
+      Math.PI * 2,
+    );
+  } else if (shape.kind === "line") {
+    const horizontal = (shape.lineDirection ?? "horizontal") === "horizontal";
+    ctx.beginPath();
+    if (horizontal) {
+      const y = box.y + box.h / 2;
+      ctx.moveTo(box.x, y);
+      ctx.lineTo(box.x + box.w, y);
+    } else {
+      const x = box.x + box.w / 2;
+      ctx.moveTo(x, box.y);
+      ctx.lineTo(x, box.y + box.h);
+    }
+    ctx.strokeStyle = stroke ?? fill ?? "#111827";
+    ctx.lineWidth = Math.max(1, lineWidth || box.h);
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.restore();
+    return;
+  } else {
+    roundRect(ctx, box.x, box.y, box.w, box.h, (shape.cornerRadius ?? 0) * scale);
+  }
+
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke && lineWidth > 0) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * Every element carries a shadow block, but the reference only paints one that
+ * has actually been styled: a block still sitting on the editor's default
+ * offset and colour is "no shadow", however its blur reads.
+ */
+function isAuthoredShadow(
+  shadow: ApiElement["shadow"],
+): shadow is NonNullable<ApiElement["shadow"]> {
+  if (!shadow) return false;
+  const defaultOffset = Math.abs(shadow.x) === 0.05 && Math.abs(shadow.y) === 0.05;
+  const defaultColour = shadow.color === "rgba(0,0,0,0.2)";
+  return !(defaultOffset && defaultColour);
+}
+
 /** Image cache lookup that accepts either a storage path or a full URL. */
 function lookup(
   images: Map<string, HTMLImageElement>,
@@ -980,8 +1236,12 @@ function lookup(
 }
 
 /**
- * Draws a decoration asset. `svgColor` recolours the artwork the way the
- * reference does — the shape is used as a mask and filled with the colour.
+ * Draws a decoration asset.
+ *
+ * The reference's SVG style has two independent parts, both reproduced here:
+ * a colour overlay (a flat colour or a gradient, applied by using the artwork
+ * as a mask) and a border/stroke drawn around the same silhouette. Stroke
+ * width is a fraction of the element's width, as authored.
  */
 function drawArtwork(
   ctx: CanvasRenderingContext2D,
@@ -989,26 +1249,78 @@ function drawArtwork(
   box: { x: number; y: number; w: number; h: number },
   fit: "contain" | "cover" | "fill",
   vPos: "top" | "center" | "bottom",
-  svgColor?: string,
+  overlay?: string,
+  stroke?: { color: string; width: number },
 ) {
-  if (!svgColor) {
+  if (!overlay && !stroke) {
     drawFitted(ctx, img, box, fit, vPos);
     return;
   }
-  const pad = Math.ceil(Math.max(box.w, box.h) * 0.02) + 2;
+
+  const strokePx = stroke ? Math.max(1, stroke.width * box.w) : 0;
+  const pad = Math.ceil(strokePx) + 2;
   const w = Math.max(1, Math.ceil(box.w) + pad * 2);
   const h = Math.max(1, Math.ceil(box.h) + pad * 2);
-  const tintCanvas = document.createElement("canvas");
-  tintCanvas.width = w;
-  tintCanvas.height = h;
-  const tctx = tintCanvas.getContext("2d");
-  if (!tctx) {
+  const inner = { x: pad, y: pad, w: box.w, h: box.h };
+
+  const layer = document.createElement("canvas");
+  layer.width = w;
+  layer.height = h;
+  const lctx = layer.getContext("2d");
+  if (!lctx) {
     drawFitted(ctx, img, box, fit, vPos);
     return;
   }
-  drawFitted(tctx, img, { x: pad, y: pad, w: box.w, h: box.h }, fit, vPos);
-  tctx.globalCompositeOperation = "source-in";
-  tctx.fillStyle = svgColor;
-  tctx.fillRect(0, 0, w, h);
-  ctx.drawImage(tintCanvas, box.x - pad, box.y - pad);
+
+  /* The border: the silhouette dilated by offsetting it around a ring. */
+  if (stroke && strokePx > 0) {
+    const mask = document.createElement("canvas");
+    mask.width = w;
+    mask.height = h;
+    const mctx = mask.getContext("2d");
+    if (mctx) {
+      const steps = 16;
+      for (let i = 0; i < steps; i += 1) {
+        const a = (i / steps) * Math.PI * 2;
+        drawFitted(
+          mctx,
+          img,
+          {
+            ...inner,
+            x: inner.x + Math.cos(a) * strokePx,
+            y: inner.y + Math.sin(a) * strokePx,
+          },
+          fit,
+          vPos,
+        );
+      }
+      mctx.globalCompositeOperation = "source-in";
+      mctx.fillStyle = isGradient(stroke.color)
+        ? cssGradient(mctx, stroke.color, { x: 0, y: 0, w, h })
+        : stroke.color;
+      mctx.fillRect(0, 0, w, h);
+      lctx.drawImage(mask, 0, 0);
+    }
+  }
+
+  /* The artwork itself, recoloured when an overlay is set. */
+  const artwork = document.createElement("canvas");
+  artwork.width = w;
+  artwork.height = h;
+  const actx = artwork.getContext("2d");
+  if (!actx) {
+    drawFitted(ctx, img, box, fit, vPos);
+    return;
+  }
+  drawFitted(actx, img, inner, fit, vPos);
+  if (overlay) {
+    actx.globalCompositeOperation = "source-in";
+    actx.fillStyle = isGradient(overlay)
+      ? cssGradient(actx, overlay, { x: 0, y: 0, w, h })
+      : overlay;
+    actx.fillRect(0, 0, w, h);
+  }
+  lctx.drawImage(artwork, 0, 0);
+
+  ctx.drawImage(layer, box.x - pad, box.y - pad);
 }

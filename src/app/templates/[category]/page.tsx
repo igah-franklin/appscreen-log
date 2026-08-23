@@ -17,7 +17,7 @@ export async function generateMetadata({
   const cat = CATEGORY_BY_SLUG.get(category);
   if (!cat) return {};
   return {
-    title: `AppScreens: ${cat.heading} for App Store & Google Play`,
+    title: `screenKit: ${cat.heading} for App Store & Google Play`,
     description: cat.description,
   };
 }

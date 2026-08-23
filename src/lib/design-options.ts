@@ -39,7 +39,26 @@ export const MATCH_TEXT_SIZE = [
 export const DEVICE_TYPES = [
   "Flat Device Mockup",
   "Real Device Mockup",
+  "Dynamic Frame",
   "No Device",
+] as const;
+
+/** Frame body colours the reference offers, keyed by its own names. */
+export const DEVICE_COLOURS = [
+  { id: "black", label: "Black" },
+  { id: "dark", label: "Dark" },
+  { id: "space", label: "Space" },
+  { id: "silver", label: "Silver" },
+  { id: "light", label: "Light" },
+  { id: "reallight", label: "Real Light" },
+  { id: "white", label: "White" },
+  { id: "gold", label: "Gold" },
+  { id: "realgold", label: "Real Gold" },
+  { id: "rose", label: "Rose" },
+  { id: "coral", label: "Coral" },
+  { id: "strawberry", label: "Strawberry" },
+  { id: "green", label: "Green" },
+  { id: "earth", label: "Earth" },
 ] as const;
 
 export const DEVICE_STYLES = [

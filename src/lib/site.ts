@@ -103,7 +103,7 @@ export const FOOTER_COLUMNS: {
   links: (NavLink & { external?: boolean; badge?: string })[];
 }[] = [
   {
-    title: "AppScreens",
+    title: "screenKit",
     icon: "app",
     links: [
       { label: "Screenshot Generator", href: "/" },

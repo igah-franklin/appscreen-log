@@ -246,8 +246,8 @@ export function Editor() {
     if (!project) return;
     const targets = all
       ? project.outputs
-          .map((id) => OUTPUT_BY_ID.get(id))
-          .filter(Boolean as unknown as (o?: OutputSize) => o is OutputSize)
+        .map((id) => OUTPUT_BY_ID.get(id))
+        .filter(Boolean as unknown as (o?: OutputSize) => o is OutputSize)
       : [output];
     const screens = selectedScreen && !all ? [selectedScreen] : project.screens;
     if (!screens.length) {
@@ -294,8 +294,7 @@ export function Editor() {
       }
     }
     flash(
-      `Exported ${screens.length * targets.length} PNG${
-        screens.length * targets.length === 1 ? "" : "s"
+      `Exported ${screens.length * targets.length} PNG${screens.length * targets.length === 1 ? "" : "s"
       }`,
     );
   };
@@ -499,11 +498,10 @@ export function Editor() {
               return (
                 <div key={screen.id} className="shrink-0">
                   <div
-                    className={`group relative rounded-md ${
-                      active
-                        ? "outline outline-2 outline-indigo-500"
-                        : "outline outline-2 outline-dashed outline-gray-300 hover:outline-gray-400"
-                    }`}
+                    className={`group relative rounded-md ${active
+                      ? "outline outline-2 outline-indigo-500"
+                      : "outline outline-2 outline-dashed outline-gray-300 hover:outline-gray-400"
+                      }`}
                   >
                     <button
                       type="button"
@@ -672,9 +670,8 @@ function IconPill({
       title={label}
       aria-label={label}
       onClick={onClick}
-      className={`flex items-center justify-center rounded-md bg-white/90 text-gray-600 shadow-sm ring-1 ring-gray-200 hover:bg-white hover:text-gray-900 ${
-        compact ? "h-7 w-7 text-xs" : "h-9 w-9 text-sm"
-      }`}
+      className={`flex items-center justify-center rounded-md bg-white/90 text-gray-600 shadow-sm ring-1 ring-gray-200 hover:bg-white hover:text-gray-900 ${compact ? "h-7 w-7 text-xs" : "h-9 w-9 text-sm"
+        }`}
     >
       {children}
     </button>
@@ -794,7 +791,7 @@ function LayoutDialog({
           >
             <div className="flex h-40 flex-col items-center justify-center gap-1 rounded bg-gray-50">
               {(p.id === "text-above" || p.id === "text-below") &&
-              p.id === "text-above" ? (
+                p.id === "text-above" ? (
                 <>
                   <span className="h-2 w-16 rounded bg-gray-400" />
                   <span className="mt-1 h-24 w-14 rounded-md border-2 border-gray-400" />

@@ -29,7 +29,7 @@ export function ShareRow({ name, url }: { name: string; url: string }) {
       <IconLink
         label="Share template by email"
         href={`mailto:?subject=${encodeURIComponent(
-          `${name} | AppScreens Template`,
+          `${name} | screenKit Template`,
         )}&body=%20${enc}`}
       >
         <svg viewBox="0 0 512 512" fill="currentColor" className="h-7 w-7">
@@ -59,7 +59,7 @@ export function ShareRow({ name, url }: { name: string; url: string }) {
       <IconLink
         label="Share template on Reddit"
         href={`https://reddit.com/submit?url=${enc}&title=${encodeURIComponent(
-          `${name} | AppScreens Template`,
+          `${name} | screenKit Template`,
         )}`}
       >
         <svg viewBox="0 0 512 512" fill="currentColor" className="h-7 w-7">

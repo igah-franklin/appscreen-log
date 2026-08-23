@@ -232,24 +232,78 @@ function drawDeviceFrame(
   if (!spec) return;
   const radius = w * spec.radius;
   const bezel = w * spec.bezel;
+  const body = "#121216";
 
+  const isPhoneOrTablet = kind === "iphone" || kind === "android" || kind === "ipad";
+
+  if (isPhoneOrTablet) {
+    /* 1. Hardware side buttons */
+    ctx.save();
+    ctx.fillStyle = body;
+    const btnW = Math.max(2, w * 0.014);
+
+    // Right Side Power Button
+    const pY = y + h * 0.22;
+    const pH = h * 0.11;
+    roundRect(ctx, x + w, pY, btnW, pH, btnW / 2);
+    ctx.fill();
+
+    // Left Side Action Button
+    const aY = y + h * 0.14;
+    const aH = h * 0.038;
+    roundRect(ctx, x - btnW, aY, btnW, aH, btnW / 2);
+    ctx.fill();
+
+    // Left Side Volume Up
+    const v1Y = y + h * 0.21;
+    const vH = h * 0.065;
+    roundRect(ctx, x - btnW, v1Y, btnW, vH, btnW / 2);
+    ctx.fill();
+
+    // Left Side Volume Down
+    const v2Y = y + h * 0.295;
+    roundRect(ctx, x - btnW, v2Y, btnW, vH, btnW / 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* 2. Device Body with Soft Ambient Shadow */
   ctx.save();
   if (shadow) {
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = w * 0.09;
-    ctx.shadowOffsetY = w * 0.03;
+    ctx.shadowColor = "rgba(0,0,0,0.32)";
+    ctx.shadowBlur = w * 0.095;
+    ctx.shadowOffsetY = w * 0.035;
   }
-  ctx.fillStyle = "#101014";
+  ctx.fillStyle = body;
   roundRect(ctx, x, y, w, h, radius);
   ctx.fill();
   ctx.restore();
+
+  /* 3. Outer Metallic Rim Highlight */
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
+  ctx.lineWidth = Math.max(1, w * 0.005);
+  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, radius);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 4. Top Speaker Earphone Slit */
+  if (isPhoneOrTablet) {
+    ctx.save();
+    const spW = w * 0.12;
+    const spH = Math.max(1.5, w * 0.006);
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    roundRect(ctx, x + (w - spW) / 2, y + bezel * 0.35, spW, spH, spH / 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // screen well
   const sx = x + bezel;
   const sy = y + bezel;
   const sw = w - bezel * 2;
   const sh = h - bezel * 2;
-  const sr = Math.max(radius - bezel, 2);
+  const sr = Math.max(radius - bezel, 3);
 
   ctx.save();
   roundRect(ctx, sx, sy, sw, sh, sr);
@@ -268,24 +322,51 @@ function drawDeviceFrame(
     ctx.font = `500 ${sw * 0.055}px "Geist Sans", sans-serif`;
     ctx.fillText("Your app screen", sx + sw / 2, sy + sh / 2);
   }
-  ctx.restore();
 
-  // notch / island
-  if (spec.notch) {
-    const nw = sw * 0.34;
-    const nh = sw * 0.085;
-    ctx.fillStyle = "#101014";
-    roundRect(ctx, sx + (sw - nw) / 2, sy + nh * 0.35, nw, nh, nh / 2);
+  /* Home Bar Indicator */
+  if (kind === "iphone" || kind === "ipad") {
+    const hw = sw * 0.35;
+    const hh = Math.max(3, sw * 0.012);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    roundRect(ctx, sx + (sw - hw) / 2, sy + sh - sw * 0.032, hw, hh, hh / 2);
     ctx.fill();
   }
 
-  // subtle frame highlight
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.18)";
-  ctx.lineWidth = Math.max(1, w * 0.004);
-  roundRect(ctx, x, y, w, h, radius);
-  ctx.stroke();
   ctx.restore();
+
+  // Dynamic Island / Camera Notch
+  if (spec.notch) {
+    ctx.save();
+    const nw = sw * 0.28;
+    const nh = sw * 0.062;
+    const nx = sx + (sw - nw) / 2;
+    const ny = sy + sw * 0.022;
+
+    // Dynamic Island Pill
+    ctx.fillStyle = "#000000";
+    roundRect(ctx, nx, ny, nw, nh, nh / 2);
+    ctx.fill();
+
+    // Camera Lens Reflection inside Island
+    ctx.beginPath();
+    ctx.arc(nx + nw * 0.72, ny + nh / 2, nh * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = "#0a0a14";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(nx + nw * 0.72 + nh * 0.05, ny + nh / 2 - nh * 0.05, nh * 0.08, 0, Math.PI * 2);
+    ctx.fillStyle = "#1e2238";
+    ctx.fill();
+    ctx.restore();
+  } else if (kind === "android") {
+    // Android Punch-hole Camera
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(sx + sw / 2, sy + sw * 0.038, sw * 0.02, 0, Math.PI * 2);
+    ctx.fillStyle = "#000000";
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 export function loadImage(src: string): Promise<HTMLImageElement> {

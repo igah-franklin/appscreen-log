@@ -21,8 +21,22 @@ export type VPos = "top" | "center" | "bottom";
 
 export type ApiShadow = { x: number; y: number; blur: number; color: string };
 
+/** A drawn shape layer — rectangles, ellipses and rules. */
+export type ApiShape = {
+  kind: string;
+  size?: string;
+  fill?: string | null;
+  stroke?: string | null;
+  strokeWidth?: number;
+  cornerRadius?: number;
+  lineDirection?: string;
+  glassStrength?: number;
+  glassFrost?: number;
+  glassColor?: string | null;
+};
+
 export type ApiElement = {
-  type: "title" | "image" | "device" | "spacer";
+  type: "title" | "image" | "device" | "shape" | "spacer";
   loc: { w: number; h: number; x: number; y: number; anchor: "middle" | "topLeft" };
   rot?: number;
   /** 0–1; multiplies whatever the element paints. */
@@ -34,7 +48,9 @@ export type ApiElement = {
   decoration?: string;
   decorationColor?: string;
   decorationStrokeWidth?: number;
+  decorationStrokeColor?: string;
   padding?: number;
+  shape?: ApiShape;
   /** Caption placement inside its box. */
   position?: VPos;
   matchTextSize?: boolean;
@@ -42,8 +58,10 @@ export type ApiElement = {
   assetShape?: "blob" | "sparkle" | "wave" | "arrow" | "laurel" | "generic";
   fit?: Fit;
   vPos?: VPos;
+  /** Overlay applied to SVG artwork — a colour or a whole CSS gradient. */
   svgColor?: string;
   svgStrokeWidth?: number;
+  svgStrokeColor?: string;
   device?: {
     variant?: string;
     colour?: string;
@@ -56,6 +74,7 @@ export type ApiElement = {
     frameSize?: number;
     padding?: number;
     paddingColor?: string;
+    infill?: string;
   };
 };
 
