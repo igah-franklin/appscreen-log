@@ -862,7 +862,7 @@ function drawDevice(
     : undefined;
 
   if (photo) {
-    const aspect = photo.image.naturalHeight / photo.image.naturalWidth;
+    const aspect = photo.size.h / photo.size.w;
     let fw = box.w;
     let fh = fw * aspect;
     if (fh > box.h) {
@@ -872,21 +872,26 @@ function drawDevice(
     const fx = box.x + (box.w - fw) / 2;
     const fy = el.loc.anchor === "middle" ? box.y + (box.h - fh) / 2 : box.y;
 
-    const screen = {
-      x: fx + photo.screen.x * fw,
-      y: fy + photo.screen.y * fh,
-      w: photo.screen.w * fw,
-      h: photo.screen.h * fh,
-    };
-
+    /*
+     * Draw the app screen in the frame image's own coordinates, clipped to the
+     * traced cutout, so it lands exactly inside the glass however the frame is
+     * scaled. The frame itself then goes over the top.
+     */
     ctx.save();
-    roundRect(ctx, screen.x, screen.y, screen.w, screen.h, screen.w * 0.06);
-    ctx.clip();
+    ctx.translate(fx, fy);
+    ctx.scale(fw / photo.size.w, fh / photo.size.h);
+    ctx.clip(photo.path);
     const shot = lookup(images, el.device?.screenshot);
     if (shot) {
-      drawFitted(ctx, shot, screen, el.fit ?? "cover", el.vPos ?? "center");
+      drawFitted(ctx, shot, photo.screen, el.fit ?? "cover", el.vPos ?? "center");
     } else {
-      drawPlaceholderUi(ctx, screen.x, screen.y, screen.w, screen.h);
+      drawPlaceholderUi(
+        ctx,
+        photo.screen.x,
+        photo.screen.y,
+        photo.screen.w,
+        photo.screen.h,
+      );
     }
     ctx.restore();
 

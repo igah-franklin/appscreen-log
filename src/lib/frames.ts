@@ -41,8 +41,12 @@ const FRAME_VARIANTS = new Set(["full", "warpleft", "warpright"]);
 
 export type DeviceFrame = {
   image: HTMLImageElement;
-  /** Screen cutout as fractions of the frame image. */
+  /** Natural size of the frame image, the space `path` is drawn in. */
+  size: { w: number; h: number };
+  /** Screen cutout bounds, in frame-image pixels. */
   screen: { x: number; y: number; w: number; h: number };
+  /** The cutout's exact outline, in frame-image pixels. */
+  path: Path2D;
 };
 
 const cache = new Map<string, Promise<DeviceFrame | null>>();
@@ -60,11 +64,19 @@ export function frameUrl(
 }
 
 /**
- * Loads a frame and measures its screen cutout.
+ * Loads a frame and traces its screen cutout.
  *
- * The cutout is the transparent region in the middle of the image; scanning the
- * centre row and column for the transparent run is enough, and far cheaper than
- * walking every pixel of a 1800×3700 frame.
+ * The PNG is a device on a transparent background, so the transparent pixels
+ * *outside* the body look exactly like the screen cutout — scanning inward
+ * from the edges finds nothing, and the cutout's bounding-box corners land
+ * outside the body, where the image is transparent too. So instead of fitting
+ * a corner radius, this traces the cutout row by row and keeps the outline as
+ * a path: the screen is then clipped to its real rounded shape.
+ *
+ * Each row is measured from two reference columns a quarter of the way in from
+ * each side. Those sit inside the screen but clear of the side buttons and of
+ * a notch or Dynamic Island, which are opaque and sit *within* the screen area
+ * and would otherwise cut the row short.
  */
 export function loadFrame(url: string): Promise<DeviceFrame | null> {
   const existing = cache.get(url);
@@ -89,31 +101,59 @@ export function loadFrame(url: string): Promise<DeviceFrame | null> {
     if (!ctx) return null;
     ctx.drawImage(image, 0, 0);
 
-    const alphaAt = (data: Uint8ClampedArray, i: number) => data[i * 4 + 3];
+    const OPAQUE = 8;
+    const { data } = ctx.getImageData(0, 0, w, h);
+    const clear = (x: number, y: number) => data[(y * w + x) * 4 + 3] <= OPAQUE;
 
-    const midRow = ctx.getImageData(0, Math.floor(h / 2), w, 1).data;
-    let left = 0;
-    while (left < w && alphaAt(midRow, left) > 8) left += 1;
-    let right = w - 1;
-    while (right > left && alphaAt(midRow, right) > 8) right -= 1;
+    const cx = w >> 1;
+    const cy = h >> 1;
+    if (!clear(cx, cy)) return null;
 
-    const midCol = ctx.getImageData(Math.floor(w / 2), 0, 1, h).data;
-    let top = 0;
-    while (top < h && alphaAt(midCol, top) > 8) top += 1;
-    let bottom = h - 1;
-    while (bottom > top && alphaAt(midCol, bottom) > 8) bottom -= 1;
+    let left = cx;
+    while (left > 0 && clear(left - 1, cy)) left -= 1;
+    let right = cx;
+    while (right < w - 1 && clear(right + 1, cy)) right += 1;
 
-    /* A frame with no transparent interior is unusable as an overlay. */
-    if (right - left < w * 0.2 || bottom - top < h * 0.2) return null;
+    const leftRef = Math.floor(left + (right - left) * 0.25);
+    const rightRef = Math.floor(right - (right - left) * 0.25);
+
+    let top = cy;
+    while (top > 0 && clear(leftRef, top - 1)) top -= 1;
+    let bottom = cy;
+    while (bottom < h - 1 && clear(leftRef, bottom + 1)) bottom += 1;
+
+    const sw = right - left + 1;
+    const sh = bottom - top + 1;
+    if (sw < w * 0.2 || sh < h * 0.2) return null;
+
+    /* Trace the outline: left edge down one side, right edge back up. */
+    const step = Math.max(1, Math.round(sh / 600));
+    const lefts: [number, number][] = [];
+    const rights: [number, number][] = [];
+    for (let y = top; y <= bottom; y += step) {
+      if (!clear(leftRef, y) || !clear(rightRef, y)) continue;
+      let x = leftRef;
+      while (x > 0 && clear(x - 1, y)) x -= 1;
+      lefts.push([x, y]);
+      let x2 = rightRef;
+      while (x2 < w - 1 && clear(x2 + 1, y)) x2 += 1;
+      rights.push([x2 + 1, y]);
+    }
+    if (lefts.length < 2) return null;
+
+    const path = new Path2D();
+    path.moveTo(lefts[0][0], lefts[0][1]);
+    for (const [x, y] of lefts) path.lineTo(x, y);
+    for (let i = rights.length - 1; i >= 0; i -= 1) {
+      path.lineTo(rights[i][0], rights[i][1]);
+    }
+    path.closePath();
 
     return {
       image,
-      screen: {
-        x: left / w,
-        y: top / h,
-        w: (right - left + 1) / w,
-        h: (bottom - top + 1) / h,
-      },
+      size: { w, h },
+      screen: { x: left, y: top, w: sw, h: sh },
+      path,
     };
   })();
 

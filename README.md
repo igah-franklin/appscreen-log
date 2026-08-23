@@ -63,9 +63,19 @@ the canvas and break PNG export.
 `src/lib/frames.ts` maps each output size to the frame the reference itself
 loads for it (`iPhones - 6.9"` → `iosphone67island`, `Android Phones - 16:9` →
 `andgals25`, `iPad - 13"` → `iostabx`, `Android 10" Tablets` → `andgaltabs8`,
-…), picks the colour from the layer's own `deviceType`, and measures the screen
-cutout from the image's alpha channel on first load. `dynamic` and frameless
-devices are still drawn on the canvas, as they are upstream.
+…), and picks the colour from the layer's own `deviceType`.
+
+Finding the cutout takes some care, because the frame is a device on a
+*transparent background* — the pixels outside the body look exactly like the
+screen, so scanning inward from the edges finds nothing, and the cutout's
+bounding-box corners land outside the body where the image is transparent too.
+So the cutout is traced instead: each row is measured outward from two
+reference columns a quarter of the way in from each side (clear of the side
+buttons and of a notch or Dynamic Island, which are opaque and sit *within* the
+screen), and the resulting outline is kept as a `Path2D`. The app screen is
+drawn in the frame image's own coordinates clipped to that path, so it lands
+exactly inside the glass at any scale, with the frame over the top. `dynamic`
+and frameless devices are still drawn on the canvas, as they are upstream.
 
 ## Backend
 
