@@ -6,6 +6,7 @@ import {
   BackgroundSection,
   DeviceSection,
   ImageSection,
+  ShapeSection,
   TitleSection,
 } from "./panel-sections";
 import {
@@ -37,6 +38,7 @@ const TYPE_META = {
   title: { label: "Title", Icon: TextSizeIcon },
   image: { label: "Image", Icon: ImageIcon },
   device: { label: "Device", Icon: MobileIcon },
+  shape: { label: "Shape", Icon: PanoramaIcon },
   spacer: { label: "Spacer", Icon: LayersIcon },
 } as const;
 
@@ -274,11 +276,25 @@ export function SceneEditPanel({
   const open = openKey;
   const toggle = (k: string) => onOpenKeyChange(open === k ? null : k);
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scroller = useRef<HTMLDivElement | null>(null);
   const [miniTool, setMiniTool] = useState<{ key: string; tool: MiniTool } | null>(null);
 
-  // Keep the section chosen on the canvas in view.
+  /*
+   * Keep the section chosen on the canvas in view.
+   *
+   * Deliberately not `scrollIntoView`: that walks every scrollable ancestor,
+   * so it also drags the horizontal screenshot strip sideways and the canvas
+   * appears to jump. Only this panel's own scroller moves.
+   */
   useEffect(() => {
-    if (open) rowRefs.current[open]?.scrollIntoView({ block: "nearest" });
+    if (!open) return;
+    const row = rowRefs.current[open];
+    const box = scroller.current;
+    if (!row || !box) return;
+    const r = row.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    if (r.top < b.top) box.scrollTop -= b.top - r.top;
+    else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom;
   }, [open]);
 
   // Elements are listed top layer group first, spacers omitted.
@@ -324,7 +340,7 @@ export function SceneEditPanel({
         </ActionButton>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto p-2">
         <div ref={(n) => { rowRefs.current["layers"] = n; }}>
         <Row
           title="Layouts & Elements"
@@ -446,6 +462,7 @@ export function SceneEditPanel({
                 {el.type === "title" && <TitleSection el={el} patch={patch} />}
                 {el.type === "device" && <DeviceSection el={el} patch={patch} />}
                 {el.type === "image" && <ImageSection el={el} patch={patch} />}
+                {el.type === "shape" && <ShapeSection el={el} patch={patch} />}
               </Row>
             </div>
           );

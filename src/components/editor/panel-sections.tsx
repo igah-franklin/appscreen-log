@@ -3,10 +3,12 @@
 import { useRef } from "react";
 import type { ApiElement, ApiProject, ApiScreen, ApiText } from "@/lib/api";
 import { buildGradient, parseGradient, type SimpleGradient } from "@/lib/gradient";
+import { assetUrl } from "@/lib/assets";
 import {
   BACKGROUND_PATTERNS,
   DECORATIONS,
   DEVICE_STYLES,
+  DEVICE_COLOURS,
   DEVICE_TYPES,
   FITS,
   FLOATING_POSITIONS,
@@ -110,6 +112,29 @@ export function TitleSection({
       }
 
       return { ...x, title: next };
+    });
+
+  /* The subtitle carries the same run styling, so keep its lines in step too. */
+  const setSubtitle = (p: Partial<ApiText>) =>
+    patch((x) => {
+      const prev = x.subtitle ?? ({ text: "" } as ApiText);
+      const next: ApiText = { ...prev, ...p };
+      if (p.text !== undefined && prev.lines?.length) {
+        next.lines = p.text.split("\n").map((line, i) => ({
+          runs: [{ ...(prev.lines?.[i]?.runs?.[0] ?? {}), text: line }],
+          align: prev.lines?.[i]?.align ?? null,
+        }));
+      }
+      if ((p.color !== undefined || p.gradient !== undefined) && next.lines?.length) {
+        next.lines = next.lines.map((line) => ({
+          ...line,
+          runs: line.runs.map((r) => ({ ...r, color: undefined, gradient: undefined })),
+        }));
+      }
+      if (p.align !== undefined && next.lines?.length) {
+        next.lines = next.lines.map((line) => ({ ...line, align: p.align ?? null }));
+      }
+      return { ...x, subtitle: next };
     });
 
   return (
@@ -265,21 +290,98 @@ export function TitleSection({
       />
 
       {el.subtitle && (
-        <div className="mt-3">
+        <div className="mt-3 rounded-lg bg-gray-50 p-3">
           <Labeled label="Subtitle">
             <input
               className={field}
               value={el.subtitle.text}
-              onChange={(e) =>
-                patch((x) => ({
-                  ...x,
-                  subtitle: { ...x.subtitle!, text: e.target.value },
-                }))
-              }
+              onChange={(e) => setSubtitle({ text: e.target.value })}
             />
           </Labeled>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Labeled label="Subtitle font">
+              <select
+                className={field}
+                value={el.subtitle.font ?? "Global"}
+                onChange={(e) => setSubtitle({ font: e.target.value })}
+              >
+                {fontOptions(el.subtitle.font).map((f) => (
+                  <option key={f}>{f}</option>
+                ))}
+              </select>
+            </Labeled>
+            <Labeled label="Subtitle colour">
+              <input
+                type="color"
+                aria-label="Subtitle colour"
+                value={toHex(el.subtitle.color)}
+                onChange={(e) => setSubtitle({ color: e.target.value, gradient: null })}
+                className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+              />
+            </Labeled>
+          </div>
+          <div className="mt-3 flex items-center gap-1">
+            {QUILL_BUTTONS.map((b) => (
+              <button
+                key={b.key}
+                type="button"
+                aria-label={`Subtitle ${b.label.toLowerCase()}`}
+                aria-pressed={Boolean(el.subtitle?.[b.key])}
+                onClick={() =>
+                  setSubtitle({ [b.key]: !el.subtitle?.[b.key] } as Partial<ApiText>)
+                }
+                className={`h-7 w-7 rounded text-sm ${b.cls} ${
+                  el.subtitle?.[b.key]
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {b.glyph}
+              </button>
+            ))}
+            <span className="mx-1 h-5 w-px bg-gray-300" />
+            {(["left", "center", "right"] as const).map((a) => (
+              <button
+                key={a}
+                type="button"
+                aria-label={`Subtitle align ${a}`}
+                aria-pressed={el.subtitle?.align === a}
+                onClick={() => setSubtitle({ align: a })}
+                className={`h-7 w-7 rounded text-xs ${
+                  el.subtitle?.align === a
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {a === "left" ? "⇤" : a === "center" ? "≡" : "⇥"}
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Labeled label={`Letter spacing (${((t.charSpacing ?? 0) * 100).toFixed(0)}%)`}>
+          <input
+            type="range"
+            min={-5}
+            max={40}
+            value={Math.round((t.charSpacing ?? 0) * 100)}
+            onChange={(e) => setTitle({ charSpacing: +e.target.value / 100 })}
+            className="w-full accent-indigo-600"
+          />
+        </Labeled>
+        <Labeled label={`Max size (${((t.maxFontSize ?? 0.2) * 100).toFixed(0)}% of height)`}>
+          <input
+            type="range"
+            min={2}
+            max={40}
+            value={Math.round((t.maxFontSize ?? 0.2) * 100)}
+            onChange={(e) => setTitle({ maxFontSize: +e.target.value / 100 })}
+            className="w-full accent-indigo-600"
+          />
+        </Labeled>
+      </div>
 
       <div className="mt-3">
         <Labeled label="Font Family">
@@ -369,14 +471,20 @@ export function DeviceSection({
             value={
               d.variant === "none"
                 ? "No Device"
-                : (d.style ?? "real-dark").startsWith("flat")
-                  ? "Flat Device Mockup"
-                  : "Real Device Mockup"
+                : d.variant === "dynamic"
+                  ? "Dynamic Frame"
+                  : (d.style ?? "real-dark").startsWith("flat")
+                    ? "Flat Device Mockup"
+                    : "Real Device Mockup"
             }
             onChange={(e) => {
               const choice = e.target.value;
               if (choice === "No Device") {
                 setDevice({ variant: "none" });
+                return;
+              }
+              if (choice === "Dynamic Frame") {
+                setDevice({ variant: "dynamic" });
                 return;
               }
               /* Keep the light/dark half of the style, swap flat vs real. */
@@ -406,6 +514,19 @@ export function DeviceSection({
             {DEVICE_STYLES.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.label}
+              </option>
+            ))}
+          </select>
+        </Labeled>
+        <Labeled label="Frame colour">
+          <select
+            className={field}
+            value={d.colour ?? "black"}
+            onChange={(e) => setDevice({ colour: e.target.value })}
+          >
+            {DEVICE_COLOURS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
               </option>
             ))}
           </select>
@@ -457,6 +578,54 @@ export function DeviceSection({
         </Labeled>
       </div>
 
+      {d.variant === "dynamic" && (
+        <div className="mt-3 rounded-lg bg-gray-50 p-3">
+          <p className="mb-2 text-xs font-semibold text-gray-700">Dynamic frame</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Labeled label="Frame colour">
+              <input
+                type="color"
+                aria-label="Dynamic frame colour"
+                value={toHex(d.frameColor ?? "#000000")}
+                onChange={(e) => setDevice({ frameColor: e.target.value })}
+                className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+              />
+            </Labeled>
+            <Labeled label="Padding colour">
+              <input
+                type="color"
+                aria-label="Dynamic frame padding colour"
+                value={toHex(d.paddingColor ?? "#ffffff")}
+                onChange={(e) => setDevice({ paddingColor: e.target.value })}
+                className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+              />
+            </Labeled>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <Labeled label={`Frame width (${((d.frameSize ?? 0.02) * 100).toFixed(1)}%)`}>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round((d.frameSize ?? 0.02) * 1000)}
+                onChange={(e) => setDevice({ frameSize: +e.target.value / 1000 })}
+                className="w-full accent-indigo-600"
+              />
+            </Labeled>
+            <Labeled label={`Padding (${((d.padding ?? 0) * 100).toFixed(1)}%)`}>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round((d.padding ?? 0) * 1000)}
+                onChange={(e) => setDevice({ padding: +e.target.value / 1000 })}
+                className="w-full accent-indigo-600"
+              />
+            </Labeled>
+          </div>
+        </div>
+      )}
+
       <input
         ref={file}
         type="file"
@@ -491,6 +660,55 @@ export function DeviceSection({
 
 /* ------------------------------------------------------------------ Image */
 
+/** None / solid / gradient, mirroring the reference's SVG style popover. */
+type FillMode = "none" | "solid" | "gradient";
+
+function fillMode(value: string | undefined): FillMode {
+  if (!value) return "none";
+  return parseGradient(value) ? "gradient" : "solid";
+}
+
+function ModeButtons({
+  mode,
+  onChange,
+  label,
+}: {
+  mode: FillMode;
+  onChange: (m: FillMode) => void;
+  label: string;
+}) {
+  const modes: { id: FillMode; glyph: string; title: string }[] = [
+    { id: "none", glyph: "⃠", title: "None" },
+    { id: "solid", glyph: "🎨", title: "Solid colour" },
+    { id: "gradient", glyph: "▦", title: "Gradient" },
+  ];
+  return (
+    <div className="flex gap-2" role="group" aria-label={label}>
+      {modes.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          aria-label={`${label}: ${m.title}`}
+          aria-pressed={mode === m.id}
+          onClick={() => onChange(m.id)}
+          className={`btn h-9 w-10 justify-center ${
+            mode === m.id ? "btn-primary" : "btn-secondary"
+          }`}
+        >
+          {m.glyph}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The Image panel.
+ *
+ * Mirrors the reference's own: a transparency-checkered preview of the
+ * artwork, Fit and Vertical position, and an SVG style block with an
+ * independent colour overlay and border/stroke, each none / solid / gradient.
+ */
 export function ImageSection({
   el,
   patch,
@@ -499,61 +717,224 @@ export function ImageSection({
   patch: (fn: (el: ApiElement) => ApiElement) => void;
 }) {
   const file = useRef<HTMLInputElement>(null);
+
+  const overlayMode = fillMode(el.svgColor);
+  const overlayGradient = parseGradient(el.svgColor);
+  const strokeMode = fillMode(el.svgStrokeColor);
+  const strokeGradient = parseGradient(el.svgStrokeColor);
+
+  const setOverlay = (mode: FillMode) =>
+    patch((x) => {
+      if (mode === "none") return { ...x, svgColor: undefined };
+      const from = parseGradient(x.svgColor)?.from ?? x.svgColor ?? "#7c5cff";
+      if (mode === "solid") return { ...x, svgColor: from };
+      return {
+        ...x,
+        svgColor: buildGradient({
+          from,
+          to: parseGradient(x.svgColor)?.to ?? from,
+          angle: parseGradient(x.svgColor)?.angle ?? 270,
+        }),
+      };
+    });
+
+  const patchOverlay = (part: Partial<SimpleGradient>) =>
+    patch((x) => {
+      const base = parseGradient(x.svgColor);
+      if (!base) return { ...x, svgColor: part.from ?? x.svgColor };
+      return { ...x, svgColor: buildGradient({ ...base, ...part }) };
+    });
+
+  const setStroke = (mode: FillMode) =>
+    patch((x) => {
+      if (mode === "none") return { ...x, svgStrokeColor: undefined };
+      const from = parseGradient(x.svgStrokeColor)?.from ?? x.svgStrokeColor ?? "#1f2937";
+      const width = x.svgStrokeWidth || 0.0075;
+      if (mode === "solid") return { ...x, svgStrokeColor: from, svgStrokeWidth: width };
+      return {
+        ...x,
+        svgStrokeWidth: width,
+        svgStrokeColor: buildGradient({
+          from,
+          to: parseGradient(x.svgStrokeColor)?.to ?? from,
+          angle: parseGradient(x.svgStrokeColor)?.angle ?? 270,
+        }),
+      };
+    });
+
+  const patchStroke = (part: Partial<SimpleGradient>) =>
+    patch((x) => {
+      const base = parseGradient(x.svgStrokeColor);
+      if (!base) return { ...x, svgStrokeColor: part.from ?? x.svgStrokeColor };
+      return { ...x, svgStrokeColor: buildGradient({ ...base, ...part }) };
+    });
+
+  const preview = assetUrl(el.asset);
+
   return (
     <>
-      <div className="grid grid-cols-2 gap-3">
-        <Labeled label="Fit">
-          <select
-            className={field}
-            value={el.fit ?? "contain"}
-            onChange={(e) =>
-              patch((x) => ({ ...x, fit: e.target.value as ApiElement["fit"] }))
-            }
-          >
-            {FITS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </Labeled>
-        <Labeled label="Vertical position">
-          <select
-            className={field}
-            value={el.vPos ?? "center"}
-            onChange={(e) =>
-              patch((x) => ({ ...x, vPos: e.target.value as ApiElement["vPos"] }))
-            }
-          >
-            {VERTICAL_POSITIONS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </Labeled>
+      <div className="flex gap-3">
+        {/* Transparency checkerboard behind the artwork, as the reference shows it. */}
+        <div
+          className="h-28 w-28 shrink-0 rounded-md border border-gray-200 bg-white"
+          style={{
+            backgroundImage:
+              "linear-gradient(45deg,#e5e7eb 25%,transparent 25%,transparent 75%,#e5e7eb 75%)," +
+              "linear-gradient(45deg,#e5e7eb 25%,transparent 25%,transparent 75%,#e5e7eb 75%)",
+            backgroundSize: "16px 16px",
+            backgroundPosition: "0 0, 8px 8px",
+          }}
+        >
+          {preview ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={preview}
+              alt="Selected artwork"
+              className="h-full w-full object-contain p-1"
+            />
+          ) : (
+            <span className="flex h-full items-center justify-center text-[11px] text-gray-400">
+              No image
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <Labeled label="Fit">
+            <select
+              className={field}
+              value={el.fit ?? "contain"}
+              onChange={(e) =>
+                patch((x) => ({ ...x, fit: e.target.value as ApiElement["fit"] }))
+              }
+            >
+              {FITS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Labeled>
+          <Labeled label="Vertical position">
+            <select
+              className={field}
+              value={el.vPos ?? "center"}
+              onChange={(e) =>
+                patch((x) => ({ ...x, vPos: e.target.value as ApiElement["vPos"] }))
+              }
+            >
+              {VERTICAL_POSITIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Labeled>
+        </div>
       </div>
 
-      <div className="mt-3">
-        <Labeled label="SVG style">
-          <input
-            type="color"
-            aria-label="SVG colour"
-            value={toHex(el.svgColor ?? "#7c5cff")}
-            onChange={(e) => patch((x) => ({ ...x, svgColor: e.target.value }))}
-            className="h-9 w-16 cursor-pointer rounded-md border border-gray-300"
-          />
-        </Labeled>
-        {el.svgColor && (
+      <p className="mb-1.5 mt-4 text-xs font-semibold text-gray-700">Colour overlay</p>
+      <ModeButtons mode={overlayMode} onChange={setOverlay} label="Colour overlay" />
+      {overlayMode !== "none" && (
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <Labeled label={overlayMode === "gradient" ? "From" : "Colour"}>
+            <input
+              type="color"
+              aria-label="Overlay colour"
+              value={toHex(overlayGradient?.from ?? el.svgColor)}
+              onChange={(e) =>
+                overlayGradient
+                  ? patchOverlay({ from: e.target.value })
+                  : patch((x) => ({ ...x, svgColor: e.target.value }))
+              }
+              className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+            />
+          </Labeled>
+          {overlayMode === "gradient" && (
+            <Labeled label="To">
+              <input
+                type="color"
+                aria-label="Overlay second colour"
+                value={toHex(overlayGradient?.to)}
+                onChange={(e) => patchOverlay({ to: e.target.value })}
+                className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+              />
+            </Labeled>
+          )}
+        </div>
+      )}
+      {overlayMode === "gradient" && (
+        <div className="mt-2 flex items-center gap-2">
+          <Labeled label={`Angle (${overlayGradient?.angle ?? 270}°)`}>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              value={overlayGradient?.angle ?? 270}
+              onChange={(e) => patchOverlay({ angle: +e.target.value })}
+              className="w-full accent-indigo-600"
+            />
+          </Labeled>
           <button
             type="button"
-            onClick={() => patch((x) => ({ ...x, svgColor: undefined }))}
-            className="mt-2 text-xs font-semibold text-indigo-600 hover:underline"
+            aria-label="Swap overlay colours"
+            onClick={() =>
+              overlayGradient &&
+              patchOverlay({ from: overlayGradient.to, to: overlayGradient.from })
+            }
+            className="btn btn-secondary mt-4 h-9 w-10 justify-center"
           >
-            Use the artwork&rsquo;s own colours
+            ⇄
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      <p className="mb-1.5 mt-4 text-xs font-semibold text-gray-700">Border / stroke</p>
+      <ModeButtons mode={strokeMode} onChange={setStroke} label="Border / stroke" />
+      {strokeMode !== "none" && (
+        <>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <Labeled label={strokeMode === "gradient" ? "From" : "Colour"}>
+              <input
+                type="color"
+                aria-label="Stroke colour"
+                value={toHex(strokeGradient?.from ?? el.svgStrokeColor)}
+                onChange={(e) =>
+                  strokeGradient
+                    ? patchStroke({ from: e.target.value })
+                    : patch((x) => ({ ...x, svgStrokeColor: e.target.value }))
+                }
+                className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+              />
+            </Labeled>
+            {strokeMode === "gradient" && (
+              <Labeled label="To">
+                <input
+                  type="color"
+                  aria-label="Stroke second colour"
+                  value={toHex(strokeGradient?.to)}
+                  onChange={(e) => patchStroke({ to: e.target.value })}
+                  className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+                />
+              </Labeled>
+            )}
+          </div>
+          <div className="mt-2">
+            <Labeled label={`Width (${((el.svgStrokeWidth ?? 0) * 100).toFixed(2)}%)`}>
+              <input
+                type="range"
+                min={0}
+                max={40}
+                value={Math.round((el.svgStrokeWidth ?? 0) * 1000)}
+                onChange={(e) =>
+                  patch((x) => ({ ...x, svgStrokeWidth: +e.target.value / 1000 }))
+                }
+                className="w-full accent-indigo-600"
+              />
+            </Labeled>
+          </div>
+        </>
+      )}
 
       <input
         ref={file}
@@ -577,27 +958,188 @@ export function ImageSection({
         >
           Select Image
         </button>
-        {el.device?.screenshot && (
+        {el.asset && (
           <button
             type="button"
-            onClick={() =>
-              patch((x) => ({ ...x, device: { ...x.device, screenshot: undefined } }))
-            }
+            onClick={() => patch((x) => ({ ...x, asset: null }))}
             className="btn btn-light h-9"
           >
             Remove
           </button>
         )}
       </div>
-      <p className="mt-2 text-[11px] leading-4 text-gray-400">
-        Decoration slot ({el.assetShape ?? "generic"}) — a placeholder shape renders
-        until you supply artwork.
-      </p>
     </>
   );
 }
 
-/* ------------------------------------------------------------- Background */
+/**
+ * The Shape panel — fill, border and corner radius for a shape layer.
+ *
+ * Fill and border each take a colour or a gradient, matching how the reference
+ * stores them.
+ */
+export function ShapeSection({
+  el,
+  patch,
+}: {
+  el: ApiElement;
+  patch: (fn: (el: ApiElement) => ApiElement) => void;
+}) {
+  const shape = el.shape ?? { kind: "rectangle" };
+  const setShape = (p: Partial<NonNullable<ApiElement["shape"]>>) =>
+    patch((x) => ({ ...x, shape: { ...(x.shape ?? { kind: "rectangle" }), ...p } }));
+
+  const fillGradient = parseGradient(shape.fill);
+  const strokeGradient = parseGradient(shape.stroke);
+
+  const setFillMode = (mode: FillMode) => {
+    if (mode === "none") return setShape({ fill: null });
+    const from = fillGradient?.from ?? shape.fill ?? "#7c5cff";
+    if (mode === "solid") return setShape({ fill: from });
+    return setShape({
+      fill: buildGradient({ from, to: fillGradient?.to ?? from, angle: fillGradient?.angle ?? 90 }),
+    });
+  };
+
+  const setStrokeMode = (mode: FillMode) => {
+    if (mode === "none") return setShape({ stroke: null });
+    const from = strokeGradient?.from ?? shape.stroke ?? "#1f2937";
+    const width = shape.strokeWidth || 4;
+    if (mode === "solid") return setShape({ stroke: from, strokeWidth: width });
+    return setShape({
+      strokeWidth: width,
+      stroke: buildGradient({
+        from,
+        to: strokeGradient?.to ?? from,
+        angle: strokeGradient?.angle ?? 90,
+      }),
+    });
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <Labeled label="Shape">
+          <select
+            className={field}
+            value={shape.kind}
+            onChange={(e) => setShape({ kind: e.target.value })}
+          >
+            <option value="rectangle">Rectangle</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="line">Line</option>
+          </select>
+        </Labeled>
+        {shape.kind === "line" ? (
+          <Labeled label="Direction">
+            <select
+              className={field}
+              value={shape.lineDirection ?? "horizontal"}
+              onChange={(e) => setShape({ lineDirection: e.target.value })}
+            >
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </Labeled>
+        ) : (
+          <Labeled label={`Corner radius (${shape.cornerRadius ?? 0}px)`}>
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={shape.cornerRadius ?? 0}
+              onChange={(e) => setShape({ cornerRadius: +e.target.value })}
+              className="w-full accent-indigo-600"
+            />
+          </Labeled>
+        )}
+      </div>
+
+      <p className="mb-1.5 mt-4 text-xs font-semibold text-gray-700">Fill</p>
+      <ModeButtons mode={fillMode(shape.fill ?? undefined)} onChange={setFillMode} label="Fill" />
+      {shape.fill && (
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <Labeled label={fillGradient ? "From" : "Colour"}>
+            <input
+              type="color"
+              aria-label="Fill colour"
+              value={toHex(fillGradient?.from ?? shape.fill)}
+              onChange={(e) =>
+                fillGradient
+                  ? setShape({ fill: buildGradient({ ...fillGradient, from: e.target.value }) })
+                  : setShape({ fill: e.target.value })
+              }
+              className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+            />
+          </Labeled>
+          {fillGradient && (
+            <Labeled label="To">
+              <input
+                type="color"
+                aria-label="Fill second colour"
+                value={toHex(fillGradient.to)}
+                onChange={(e) =>
+                  setShape({ fill: buildGradient({ ...fillGradient, to: e.target.value }) })
+                }
+                className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+              />
+            </Labeled>
+          )}
+        </div>
+      )}
+      {fillGradient && (
+        <div className="mt-2">
+          <Labeled label={`Fill angle (${fillGradient.angle}°)`}>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              value={fillGradient.angle}
+              onChange={(e) =>
+                setShape({ fill: buildGradient({ ...fillGradient, angle: +e.target.value }) })
+              }
+              className="w-full accent-indigo-600"
+            />
+          </Labeled>
+        </div>
+      )}
+
+      <p className="mb-1.5 mt-4 text-xs font-semibold text-gray-700">Border</p>
+      <ModeButtons
+        mode={fillMode(shape.stroke ?? undefined)}
+        onChange={setStrokeMode}
+        label="Border"
+      />
+      {shape.stroke && (
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <Labeled label={strokeGradient ? "From" : "Colour"}>
+            <input
+              type="color"
+              aria-label="Border colour"
+              value={toHex(strokeGradient?.from ?? shape.stroke)}
+              onChange={(e) =>
+                strokeGradient
+                  ? setShape({ stroke: buildGradient({ ...strokeGradient, from: e.target.value }) })
+                  : setShape({ stroke: e.target.value })
+              }
+              className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
+            />
+          </Labeled>
+          <Labeled label={`Width (${shape.strokeWidth ?? 0}px)`}>
+            <input
+              type="range"
+              min={0}
+              max={40}
+              value={shape.strokeWidth ?? 0}
+              onChange={(e) => setShape({ strokeWidth: +e.target.value })}
+              className="w-full accent-indigo-600"
+            />
+          </Labeled>
+        </div>
+      )}
+    </>
+  );
+}
 
 export function BackgroundSection({
   screen,

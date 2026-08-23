@@ -139,15 +139,34 @@ rebuilt to the reference's own measurements:
 - **Direct selection** — hovering any element on a screenshot outlines it with a
   dashed rectangle; clicking it selects the screenshot, opens the panel and
   expands that element's own section (the selected element keeps an indigo
-  dashed outline).
-- **Per-element panels** carry the reference's controls: *Title* has Include
-  Subtitle, Floating position, the bold/italic/underline/colour/gradient/align/
-  line-spacing/text-background toolbar, Font Family, Decoration (all 20 shapes)
-  and Match text size; *Device* has Device type, Device style, Device
-  orientation, Fit, Vertical position and Add screenshots; *Image* has Fit,
-  Vertical position, SVG style and Select Image; *Background* has Panoramic,
-  the none/solid/gradient styles with colours and angle, Select Background and
-  Pattern.
+  dashed outline). Opening a section scrolls only the panel: `scrollIntoView`
+  walks every scrollable ancestor, which used to drag the horizontal strip
+  sideways and make the canvas jump.
+- **Edits repaint one screen.** Every change produces a new project object, but
+  a repaint is a full store-resolution draw, so the canvas keys off its own
+  screen plus the project-wide styling that reaches it rather than the whole
+  project.
+- **Per-element panels** carry the reference's controls, and every property a
+  captured design stores is reachable from them:
+  - *Title* — Include Subtitle, Floating position, the bold/italic/underline/
+    colour/gradient/align/line-spacing/text-background toolbar, Font Family,
+    Decoration (all 20 shapes), letter spacing and max size, plus the
+    subtitle's own font, colour, style and alignment.
+  - *Device* — Device type (real / flat / dynamic frame / none), Device style,
+    frame colour, orientation, Fit, Vertical position, Add screenshots, and the
+    dynamic frame's own colour, width, padding and padding colour.
+  - *Image* — a transparency-checkered preview of the artwork, Fit, Vertical
+    position, and the reference's SVG style split into an independent **colour
+    overlay** and **border / stroke**, each none / solid / gradient.
+  - *Shape* — shape kind, corner radius or line direction, and fill and border
+    as colour or gradient.
+  - *Background* — Panoramic, the none/solid/gradient styles with colours and
+    angle, Select Background with its fit, and Pattern.
+  - Every element also has working opacity, rotation and exact-dimension
+    controls in its row.
+- **Globals** — the toolbar's Globals sheet sets the project-wide title and
+  subtitle fonts, background and accent colour; captions authored with the
+  "Global" font follow them.
 - **Export** — renders every screen at every selected output size and downloads
   a single `.zip`, foldered by size (`iphone-6-9/01.png`), with a progress
   readout. The archive is written by a small built-in ZIP writer
@@ -225,6 +244,9 @@ starter layout that keeps the template's palette, orientation and shot count.
   vector set, so they read the same at a glance but are not identical curves.
 - Text rasterises differently from the reference's own renderer, so line breaks
   can fall a word earlier or later on a very tight caption.
+- `compare-fidelity.mjs` compares against a fixed grid, so it under-scores
+  templates whose output aspect differs from the preview image — the Apple
+  Watch ones especially.
 - No authentication: "Copy to Account" marks the project as kept and scopes it
   to a per-browser key rather than a real login.
 - `/` redirects to `/templates`; the marketing home page, `/pricing`, `/blog`

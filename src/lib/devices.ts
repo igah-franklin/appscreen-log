@@ -48,11 +48,28 @@ export const OUTPUT_SIZES: OutputSize[] = [
     note: "Display: Apple Watch Ultra devices",
   },
   {
+    id: "iphone-4-7",
+    label: 'iPhones - 4.7"',
+    store: "Apple",
+    width: 750,
+    height: 1334,
+    frame: "iphone",
+    note: "Display: iPhone SE devices",
+  },
+  {
     id: "iphone-5-5",
     label: 'iPhones - 5.5"',
     store: "Apple",
     width: 1242,
     height: 2208,
+    frame: "iphone",
+  },
+  {
+    id: "iphone-5-8",
+    label: 'iPhones - 5.8"',
+    store: "Apple",
+    width: 1125,
+    height: 2436,
     frame: "iphone",
   },
   {
@@ -148,7 +165,9 @@ export const OUTPUT_BY_ID = new Map(OUTPUT_SIZES.map((o) => [o.id, o]));
  * iPads, then Android phones and tablets, then the one-off surfaces.
  */
 const OUTPUT_ORDER = [
+  "iphone-4-7",
   "iphone-5-5",
+  "iphone-5-8",
   "iphone-6-1",
   "iphone-6-3",
   "iphone-6-5",

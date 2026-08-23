@@ -59,6 +59,7 @@ export function SceneToolbar({
   onClear,
   onRestyle,
   onOpenSizes,
+  onOpenGlobals,
   onOpenBackground,
   onOpenLocalize,
   onOpenScreens,
@@ -78,6 +79,7 @@ export function SceneToolbar({
   onClear: () => void;
   onRestyle: () => void;
   onOpenSizes: () => void;
+  onOpenGlobals: () => void;
   onOpenBackground: () => void;
   onOpenLocalize: () => void;
   onOpenScreens: () => void;
@@ -143,7 +145,7 @@ export function SceneToolbar({
         <SparklesIcon className={ICON} />
       </Btn>
 
-      <Btn tone="success" label="Globals">
+      <Btn tone="success" label="Globals" onClick={onOpenGlobals}>
         <GlobeIcon className={ICON} />
         <span className="hidden xl:inline">Globals</span>
       </Btn>
