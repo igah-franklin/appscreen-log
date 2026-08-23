@@ -9,6 +9,7 @@ import { hitTest, elementKey, type ElementRef } from "@/lib/hit-test";
 import { createZip, type ZipEntry } from "@/lib/zip";
 import { screenAssetUrls } from "@/lib/assets";
 import { ensureFonts, screenFonts } from "@/lib/fonts";
+import { frameUrl, warmFrame } from "@/lib/frames";
 import { LayeredCanvas } from "./layered-canvas";
 import { OutputSizeMenu } from "./output-size-menu";
 import { OutputSizesDialog } from "./output-sizes-dialog";
@@ -149,6 +150,14 @@ export function LayeredEditor({
         await ensureFonts(
           screenFonts(screen, project.titleFont, project.subtitleFont),
         );
+        for (const group of screen.groups) {
+          for (const el of group) {
+            if (el.type !== "device") continue;
+            const variant = el.device?.variant ?? "full";
+            if (variant === "none" || variant === "dynamic") continue;
+            await warmFrame(frameUrl(size.id, variant, el.device?.colour ?? "black"));
+          }
+        }
         for (const src of screenAssetUrls(screen)) {
           if (!cache.has(src)) {
             try {

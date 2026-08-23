@@ -50,6 +50,23 @@ The API listens on `:4000`; point the front end elsewhere with
 - **Footer** — closing CTA, arched gradient plate, four link columns, social
   row, and copyright line.
 
+### Device frames
+
+The reference composites a photographic device PNG per output size, served from
+`appscreens.com/assets/frames/<variant>/<device>/<colour>.png` — the frame has a
+transparent screen cutout, so the app screen is drawn into the cutout and the
+frame laid over it. Those responses carry no CORS header, so the API proxies
+them (`/api/frames/...`), caching each to `server/data/frames/` and re-serving
+it with `access-control-allow-origin` — without which drawing one would taint
+the canvas and break PNG export.
+
+`src/lib/frames.ts` maps each output size to the frame the reference itself
+loads for it (`iPhones - 6.9"` → `iosphone67island`, `Android Phones - 16:9` →
+`andgals25`, `iPad - 13"` → `iostabx`, `Android 10" Tablets` → `andgaltabs8`,
+…), picks the colour from the layer's own `deviceType`, and measures the screen
+cutout from the image's alpha channel on first load. `dynamic` and frameless
+devices are still drawn on the canvas, as they are upstream.
+
 ## Backend
 
 `server/` — Node + Express + TypeScript + Mongoose.
@@ -57,6 +74,7 @@ The API listens on `:4000`; point the front end elsewhere with
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/health` | liveness |
+| `GET` | `/api/frames/:variant/:device/:colour.png` | device frame proxy (see below) |
 | `GET` | `/api/templates` | catalog listing (`category`, `q`, `free`, `simple`, `orientation`, `theme`, `limit`, `skip`) |
 | `GET` | `/api/templates/:templateId` | one template incl. its design payload |
 | `PUT` | `/api/templates/:templateId/layout` | ingest a captured design (see `tools/`) |
@@ -234,11 +252,10 @@ starter layout that keeps the template's palette, orientation and shot count.
 
 ## Known gaps
 
-- **Device frames are drawn, not photographed.** The reference composites a
-  photographic frame PNG per device; this build draws the frame on the canvas
-  from `FRAME_SPECS`, so bezel and corner detail differ slightly. The `full`,
-  `dynamic` and frameless treatments are reproduced; the two perspective-warped
-  ones (`warpleft` / `warpright`, 29 elements across the set) render flat.
+- **Perspective-warped devices render flat.** `warpleft` / `warpright` (29
+  elements across the set) use their own frame photograph but are not skewed.
+- Sizes the reference has no frame photograph for — Apple Vision Pro and the
+  Google Play feature graphic — stay frameless, as they do upstream.
 - **Caption decorations are rebuilt, not copied.** Laurels, badges, bubbles and
   the rest are redrawn to the reference's silhouettes rather than shipped as its
   vector set, so they read the same at a glance but are not identical curves.

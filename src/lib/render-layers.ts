@@ -3,6 +3,7 @@ import type { OutputSize } from "./devices";
 import { FRAME_SPECS } from "./devices";
 import { assetUrl } from "./assets";
 import { gradientAngle, gradientStops, isGradient } from "./gradient";
+import { frameUrl, readyFrame } from "./frames";
 
 /**
  * Renders a captured template layout. Every element is positioned as a
@@ -75,7 +76,7 @@ export async function drawLayeredScreen(
       if (typeof el.opacity === "number" && el.opacity < 1) {
         ctx.globalAlpha = Math.max(0, el.opacity);
       }
-      if (el.shadow) {
+      if (isAuthoredShadow(el.shadow)) {
         /* Shadow offsets and blur are authored as fractions of the box. */
         ctx.shadowColor = el.shadow.color;
         ctx.shadowBlur = el.shadow.blur * box.w;
@@ -850,7 +851,50 @@ function drawDevice(
   const frameless = variant === "none";
   const dynamic = variant === "dynamic";
 
-  /* Fit the device into the element box, preserving the frame's aspect ratio. */
+  /*
+   * The reference composites a photographic frame for `full` and the two warp
+   * variants. When that image is loaded, use it: the app screen goes into its
+   * transparent cutout and the frame is laid over the top. Otherwise fall back
+   * to drawing the frame, which is also what `dynamic` and frameless want.
+   */
+  const photo = !frameless && !dynamic
+    ? readyFrame(frameUrl(output.id, variant, el.device?.colour ?? "black"))
+    : undefined;
+
+  if (photo) {
+    const aspect = photo.image.naturalHeight / photo.image.naturalWidth;
+    let fw = box.w;
+    let fh = fw * aspect;
+    if (fh > box.h) {
+      fh = box.h;
+      fw = fh / aspect;
+    }
+    const fx = box.x + (box.w - fw) / 2;
+    const fy = el.loc.anchor === "middle" ? box.y + (box.h - fh) / 2 : box.y;
+
+    const screen = {
+      x: fx + photo.screen.x * fw,
+      y: fy + photo.screen.y * fh,
+      w: photo.screen.w * fw,
+      h: photo.screen.h * fh,
+    };
+
+    ctx.save();
+    roundRect(ctx, screen.x, screen.y, screen.w, screen.h, screen.w * 0.06);
+    ctx.clip();
+    const shot = lookup(images, el.device?.screenshot);
+    if (shot) {
+      drawFitted(ctx, shot, screen, el.fit ?? "cover", el.vPos ?? "center");
+    } else {
+      drawPlaceholderUi(ctx, screen.x, screen.y, screen.w, screen.h);
+    }
+    ctx.restore();
+
+    ctx.drawImage(photo.image, fx, fy, fw, fh);
+    return;
+  }
+
+  /* Fit the drawn frame into the element box, preserving its aspect ratio. */
   let w = box.w;
   let h = w * spec.aspect;
   if (h > box.h) {
@@ -1160,6 +1204,20 @@ function drawShape(
     ctx.stroke();
   }
   ctx.restore();
+}
+
+/**
+ * Every element carries a shadow block, but the reference only paints one that
+ * has actually been styled: a block still sitting on the editor's default
+ * offset and colour is "no shadow", however its blur reads.
+ */
+function isAuthoredShadow(
+  shadow: ApiElement["shadow"],
+): shadow is NonNullable<ApiElement["shadow"]> {
+  if (!shadow) return false;
+  const defaultOffset = Math.abs(shadow.x) === 0.05 && Math.abs(shadow.y) === 0.05;
+  const defaultColour = shadow.color === "rgba(0,0,0,0.2)";
+  return !(defaultOffset && defaultColour);
 }
 
 /** Image cache lookup that accepts either a storage path or a full URL. */
