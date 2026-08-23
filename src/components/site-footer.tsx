@@ -23,7 +23,7 @@ export function SiteFooter({
   ctaLead = "Start with",
   ctaAccent = "this",
   ctaTail = "template library",
-  ctaBody = "Choose a responsive AppScreens template, add your app screens, and export store-ready App Store and Google Play screenshots from one design.",
+  ctaBody = "Choose a responsive screenKit template, add your app screens, and export store-ready App Store and Google Play screenshots from one design.",
 }: {
   ctaLead?: string;
   ctaAccent?: string;
@@ -146,7 +146,7 @@ export function SiteFooter({
 
               <div className="shadow-inner-blur mt-16 block w-full rounded-2xl bg-zinc-950/[.01] sm:mt-24">
                 <div className="flex w-full flex-col items-center justify-between gap-6 rounded-2xl border border-violet-200/[.06] px-6 py-4 sm:flex-row sm:gap-8 sm:px-8 sm:py-6">
-                  <Link href="/" className="logo" aria-label="AppScreens home">
+                  <Link href="/" className="logo" aria-label="screenKit home">
                     <Logo width="190px" color="#ffffff" />
                   </Link>
                   <div className="flex items-center space-x-10">
@@ -159,7 +159,7 @@ export function SiteFooter({
                       <BlogIcon className="h-6 w-6" />
                     </Link>
                     <a
-                      href="https://www.facebook.com/AppScreens"
+                      href="https://www.facebook.com"
                       target="_blank"
                       rel="noopener"
                       className="text-zinc-400 hover:text-zinc-200"
@@ -167,7 +167,7 @@ export function SiteFooter({
                       <FacebookIcon className="h-6 w-6" />
                     </a>
                     <a
-                      href="https://x.com/AppScreens"
+                      href="https://x.com"
                       target="_blank"
                       rel="noopener"
                       className="text-zinc-400 hover:text-zinc-200"
@@ -175,7 +175,7 @@ export function SiteFooter({
                       <XIcon className="h-6 w-6" />
                     </a>
                     <a
-                      href="https://www.youtube.com/@appscreens"
+                      href="https://www.youtube.com"
                       target="_blank"
                       rel="noopener"
                       className="text-zinc-400 hover:text-zinc-200"
@@ -187,16 +187,7 @@ export function SiteFooter({
               </div>
 
               <p className="mt-10 text-center text-[15px] text-zinc-400/90 sm:mt-12">
-                © 2026 AppScreens, a registered business name of{" "}
-                <a
-                  href="https://saltybytes.com.au"
-                  target="_blank"
-                  rel="noopener"
-                  className="hover:text-zinc-200"
-                >
-                  Salty Bytes Pty Ltd
-                </a>
-                . All rights reserved | v1.1.237
+                © 2026 screenKit. All rights reserved | v1.1.237
               </p>
             </div>
           </div>

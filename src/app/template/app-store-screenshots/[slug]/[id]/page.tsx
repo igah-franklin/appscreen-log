@@ -26,7 +26,7 @@ export async function generateMetadata({
   const t = TEMPLATE_BY_ID.get(id);
   if (!t) return {};
   return {
-    title: `AppScreens: App Store Template | ${t.name}`,
+    title: `screenKit: App Store Template | ${t.name}`,
     description: templateDescription(t),
   };
 }
@@ -189,7 +189,7 @@ export default async function TemplateDetailPage({
               </p>
               <p className="text-sm text-gray-600">
                 Customize this template with your own app screens, captions,
-                colors, and device frames. AppScreens keeps the layout
+                colors, and device frames. screenKit keeps the layout
                 responsive, so you can create store-ready screenshots for iOS
                 and Android tablet and phone devices without maintaining
                 duplicate design files.

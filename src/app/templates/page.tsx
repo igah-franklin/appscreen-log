@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title:
-    "AppScreens: App Screenshot Templates for App Store & Google Play",
+    "screenKit: App Screenshot Templates for App Store & Google Play",
   description:
     "Browse app screenshot templates for App Store and Google Play. 150+ templates, 500+ editable layouts and 2,000+ store-ready output combinations.",
 };

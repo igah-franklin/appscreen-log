@@ -7,10 +7,10 @@ import { FaqIcon, MinusIcon, PlusIcon } from "./icons";
 const FAQS: { q: string; a: React.ReactNode }[] = [
   {
     q: "What are app screenshot templates?",
-    a: "150+ templates. 500+ editable layouts. 2,000+ store-ready output combinations. App screenshot templates are editable layouts for App Store and Google Play screenshots. In AppScreens, templates include captions, device frames, backgrounds, and responsive sizing so you can customize once and export store-ready files.",
+    a: "150+ templates. 500+ editable layouts. 2,000+ store-ready output combinations. App screenshot templates are editable layouts for App Store and Google Play screenshots. In screenKit, templates include captions, device frames, backgrounds, and responsive sizing so you can customize once and export store-ready files.",
   },
   {
-    q: "Do AppScreens templates work for iPhone and Android?",
+    q: "Do screenKit templates work for iPhone and Android?",
     a: "Yes. You can start from a template, add your app screens and captions, then export iPhone, iPad, Android phone, Android tablet, and Google Play-ready sizes from the same project.",
   },
   {
@@ -19,11 +19,11 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Are there free app screenshot templates?",
-    a: "Yes. AppScreens includes free templates for getting started. Premium templates and paid plans are useful when you need more projects, localization, advanced design controls, and automatic store upload workflows.",
+    a: "Yes. screenKit includes free templates for getting started. Premium templates and paid plans are useful when you need more projects, localization, advanced design controls, and automatic store upload workflows.",
   },
   {
     q: "Do templates export App Store and Google Play sizes?",
-    a: "Yes. AppScreens templates use responsive layouts and export presets for App Store and Google Play screenshots, including common iOS, Android, tablet, and feature graphic assets.",
+    a: "Yes. screenKit templates use responsive layouts and export presets for App Store and Google Play screenshots, including common iOS, Android, tablet, and feature graphic assets.",
   },
   {
     q: "Can I localize screenshot templates for different markets?",
@@ -33,7 +33,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: "Do I need Figma, Canva, or design skills to use these templates?",
     a: (
       <>
-        No. AppScreens templates are built for app store screenshot workflows,
+        No. screenKit templates are built for app store screenshot workflows,
         so you can start from a finished layout, customize it in the browser,
         and export store-ready assets without rebuilding sizes manually in a
         general design tool. If you want the full workflow, use the{" "}
@@ -58,7 +58,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
           href="/pricing"
           className="font-semibold text-violet-200 underline decoration-violet-400/60 underline-offset-4 hover:text-violet-100"
         >
-          AppScreens pricing
+          screenKit pricing
         </Link>{" "}
         for plan details.
       </>
