@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import type { ApiElement, ApiProject, ApiScreen, ApiText } from "@/lib/api";
+import { buildGradient, parseGradient, type SimpleGradient } from "@/lib/gradient";
 import {
   BACKGROUND_PATTERNS,
   DECORATIONS,
@@ -15,7 +16,14 @@ import {
   VERTICAL_POSITIONS,
 } from "@/lib/design-options";
 
-export const field =
+export /** The standard list, plus whatever font this caption is already using. */
+function fontOptions(current?: string) {
+  const list: string[] = [...FONT_FAMILIES];
+  if (current && !list.includes(current)) list.splice(2, 0, current);
+  return list;
+}
+
+const field =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
 
 export function Labeled({
@@ -64,8 +72,45 @@ export function TitleSection({
   patch: (fn: (el: ApiElement) => ApiElement) => void;
 }) {
   const t = el.title ?? ({ text: "" } as ApiText);
+
+  /**
+   * Captured captions carry per-line, per-run styling, which the renderer
+   * prefers over the plain text. Editing has to keep the two in step: text
+   * edits rebuild the lines (keeping each line's own run styling where it
+   * still applies), and styling edits that apply to the whole caption clear
+   * the per-run overrides they would otherwise be masked by.
+   */
   const setTitle = (p: Partial<ApiText>) =>
-    patch((x) => ({ ...x, title: { ...x.title!, ...p } }));
+    patch((x) => {
+      const prev = x.title ?? ({ text: "" } as ApiText);
+      const next: ApiText = { ...prev, ...p };
+
+      if (p.text !== undefined && prev.lines?.length) {
+        next.lines = p.text.split("\n").map((line, i) => {
+          const before = prev.lines?.[i];
+          const style = before?.runs?.[0] ?? {};
+          return {
+            runs: [{ ...style, text: line }],
+            align: before?.align ?? null,
+          };
+        });
+      }
+
+      /* A caption-wide colour or gradient beats any run-level colour. */
+      if ((p.color !== undefined || p.gradient !== undefined) && next.lines?.length) {
+        next.lines = next.lines.map((line) => ({
+          ...line,
+          runs: line.runs.map((r) => ({ ...r, color: undefined, gradient: undefined })),
+        }));
+      }
+
+      /* Alignment set from the toolbar applies to every line. */
+      if (p.align !== undefined && next.lines?.length) {
+        next.lines = next.lines.map((line) => ({ ...line, align: p.align ?? null }));
+      }
+
+      return { ...x, title: next };
+    });
 
   return (
     <>
@@ -243,7 +288,7 @@ export function TitleSection({
             value={t.font ?? "Global"}
             onChange={(e) => setTitle({ font: e.target.value })}
           >
-            {FONT_FAMILIES.map((f) => (
+            {fontOptions(t.font).map((f) => (
               <option key={f}>{f}</option>
             ))}
           </select>
@@ -254,17 +299,19 @@ export function TitleSection({
         <Labeled label="Decoration">
           <select
             className={field}
-            value={el.decoration ?? "None"}
+            value={el.decoration ?? "none"}
             onChange={(e) => patch((x) => ({ ...x, decoration: e.target.value }))}
           >
             {DECORATIONS.map((d) => (
-              <option key={d}>{d}</option>
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
             ))}
           </select>
         </Labeled>
       </div>
 
-      {el.decoration && el.decoration !== "None" && (
+      {el.decoration && el.decoration !== "none" && (
         <div className="mt-2">
           <Labeled label="Decoration colour">
             <input
@@ -319,10 +366,29 @@ export function DeviceSection({
         <Labeled label="Device type">
           <select
             className={field}
-            value={d.variant === "none" ? "No Device" : DEVICE_TYPES[0]}
-            onChange={(e) =>
-              setDevice({ variant: e.target.value === "No Device" ? "none" : "full" })
+            value={
+              d.variant === "none"
+                ? "No Device"
+                : (d.style ?? "real-dark").startsWith("flat")
+                  ? "Flat Device Mockup"
+                  : "Real Device Mockup"
             }
+            onChange={(e) => {
+              const choice = e.target.value;
+              if (choice === "No Device") {
+                setDevice({ variant: "none" });
+                return;
+              }
+              /* Keep the light/dark half of the style, swap flat vs real. */
+              const dark = !(d.style ?? "real-dark").endsWith("light");
+              const family = choice === "Flat Device Mockup" ? "flat" : "real";
+              setDevice({
+                variant: "full",
+                style: `${family}-${dark ? "dark" : "light"}` as NonNullable<
+                  ApiElement["device"]
+                >["style"],
+              });
+            }}
           >
             {DEVICE_TYPES.map((o) => (
               <option key={o}>{o}</option>
@@ -478,6 +544,15 @@ export function ImageSection({
             className="h-9 w-16 cursor-pointer rounded-md border border-gray-300"
           />
         </Labeled>
+        {el.svgColor && (
+          <button
+            type="button"
+            onClick={() => patch((x) => ({ ...x, svgColor: undefined }))}
+            className="mt-2 text-xs font-semibold text-indigo-600 hover:underline"
+          >
+            Use the artwork&rsquo;s own colours
+          </button>
+        )}
       </div>
 
       <input
@@ -489,7 +564,8 @@ export function ImageSection({
           const f = e.target.files?.[0];
           if (f)
             readFile(f, (data) =>
-              patch((x) => ({ ...x, device: { ...x.device, screenshot: data } })),
+              /* Replaces the slot's artwork; a photo is not tinted like an SVG. */
+              patch((x) => ({ ...x, asset: data, svgColor: undefined })),
             );
         }}
       />
@@ -537,6 +613,32 @@ export function BackgroundSection({
   const file = useRef<HTMLInputElement>(null);
   const style = screen.backgroundStyle ?? "solid";
 
+  /* A captured background may be a whole CSS gradient; expose its ends and
+     angle here and rebuild the string on edit so it stays editable. */
+  const captured = parseGradient(screen.background);
+  const angle = captured?.angle ?? screen.backgroundAngle ?? 160;
+
+  const setBackground = (part: Partial<SimpleGradient> & { solid?: string }) =>
+    patchScreen((s) => {
+      if (part.solid !== undefined && !captured) {
+        return { ...s, background: part.solid };
+      }
+      const base =
+        captured ?? {
+          from: s.background ?? "#ffffff",
+          to: s.backgroundColor2 ?? "#ffffff",
+          angle,
+        };
+      return {
+        ...s,
+        background: buildGradient({
+          ...base,
+          ...(part.solid !== undefined ? { from: part.solid } : {}),
+          ...part,
+        }),
+      };
+    });
+
   return (
     <>
       <p className="mb-1.5 text-xs font-semibold text-gray-700">Panoramic style</p>
@@ -579,10 +681,8 @@ export function BackgroundSection({
             <input
               type="color"
               aria-label="Background colour"
-              value={toHex(screen.background ?? project.background)}
-              onChange={(e) =>
-                patchScreen((s) => ({ ...s, background: e.target.value }))
-              }
+              value={toHex(captured?.from ?? screen.background ?? project.background)}
+              onChange={(e) => setBackground({ solid: e.target.value })}
               className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
             />
           </Labeled>
@@ -591,9 +691,11 @@ export function BackgroundSection({
               <input
                 type="color"
                 aria-label="Second background colour"
-                value={toHex(screen.backgroundColor2 ?? "#ffffff")}
+                value={toHex(captured?.to ?? screen.backgroundColor2 ?? "#ffffff")}
                 onChange={(e) =>
-                  patchScreen((s) => ({ ...s, backgroundColor2: e.target.value }))
+                  captured
+                    ? setBackground({ to: e.target.value })
+                    : patchScreen((s) => ({ ...s, backgroundColor2: e.target.value }))
                 }
                 className="h-9 w-full cursor-pointer rounded-md border border-gray-300"
               />
@@ -604,14 +706,16 @@ export function BackgroundSection({
 
       {style === "gradient" && (
         <div className="mt-2">
-          <Labeled label={`Angle (${screen.backgroundAngle ?? 160}°)`}>
+          <Labeled label={`Angle (${angle}°)`}>
             <input
               type="range"
               min={0}
               max={360}
-              value={screen.backgroundAngle ?? 160}
+              value={angle}
               onChange={(e) =>
-                patchScreen((s) => ({ ...s, backgroundAngle: +e.target.value }))
+                captured
+                  ? setBackground({ angle: +e.target.value })
+                  : patchScreen((s) => ({ ...s, backgroundAngle: +e.target.value }))
               }
               className="w-full accent-indigo-600"
             />
@@ -647,6 +751,26 @@ export function BackgroundSection({
           </button>
         )}
       </div>
+
+      {screen.backgroundImage && (
+        <div className="mt-3">
+          <Labeled label="Background image fit">
+            <select
+              className={field}
+              value={screen.backgroundFit ?? "cover"}
+              onChange={(e) =>
+                patchScreen((s) => ({
+                  ...s,
+                  backgroundFit: e.target.value as ApiScreen["backgroundFit"],
+                }))
+              }
+            >
+              <option value="cover">Cover</option>
+              <option value="contain">Contain</option>
+            </select>
+          </Labeled>
+        </div>
+      )}
 
       <div className="mt-3">
         <Labeled label="Pattern">

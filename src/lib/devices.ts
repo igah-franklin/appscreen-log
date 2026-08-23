@@ -143,11 +143,43 @@ export const OUTPUT_SIZES: OutputSize[] = [
 
 export const OUTPUT_BY_ID = new Map(OUTPUT_SIZES.map((o) => [o.id, o]));
 
-export const DEFAULT_OUTPUTS = [
+/**
+ * The order the reference lists sizes in: Apple phones smallest-first, then
+ * iPads, then Android phones and tablets, then the one-off surfaces.
+ */
+const OUTPUT_ORDER = [
+  "iphone-5-5",
+  "iphone-6-1",
+  "iphone-6-3",
+  "iphone-6-5",
+  "iphone-6-9",
+  "ipad-pro-12-9",
+  "ipad-13",
   "android-phone-16-9",
+  "android-tablet-7-16-9",
   "android-tablet-10-16-9",
+  "apple-watch",
+  "macos",
+  "apple-tv",
+  "apple-vision-pro",
+  "google-feature-graphic",
+];
+
+/** Sorts a set of output ids into the reference's menu order. */
+export function orderOutputs(ids: string[]): string[] {
+  const rank = (id: string) => {
+    const i = OUTPUT_ORDER.indexOf(id);
+    return i === -1 ? OUTPUT_ORDER.length : i;
+  };
+  return [...new Set(ids)].sort((a, b) => rank(a) - rank(b));
+}
+
+export const DEFAULT_OUTPUTS = [
+  "iphone-6-5",
   "iphone-6-9",
   "ipad-13",
+  "android-phone-16-9",
+  "android-tablet-10-16-9",
 ];
 
 /** Geometry for the drawn device frames, expressed as fractions of frame width. */

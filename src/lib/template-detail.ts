@@ -1,17 +1,23 @@
 import { CATEGORIES } from "@/data/categories";
+import { STYLE_TAGS } from "@/data/style-tags";
 import { TEMPLATES, type Template } from "@/data/templates";
 import { OUTPUT_BY_ID, DEFAULT_OUTPUTS } from "./devices";
 
 /**
- * The reference tags a template with its skill level, theme, and every App
- * Store category it appears under. We rebuild that list from the same data.
+ * The reference tags a template with its style, theme, and every App Store
+ * category it appears under. The style half is captured with the design (it
+ * includes hand-authored tags like "multi layered"); the categories are
+ * rebuilt from membership.
  */
 export function templateTags(t: Template): string[] {
-  const style = [t.simple ? "simple" : "advanced", ...t.theme];
+  const captured = STYLE_TAGS[t.id];
+  const style = captured?.length
+    ? captured
+    : [t.simple ? "simple" : "advanced", ...t.theme];
   const categories = CATEGORIES.filter(
     (c) => c.group === "App Store Categories" && c.members.includes(t.id),
   ).map((c) => c.label.toLowerCase());
-  return [...style, ...categories];
+  return [...new Set([...style, ...categories])];
 }
 
 export function templateOutputs(t: Template) {

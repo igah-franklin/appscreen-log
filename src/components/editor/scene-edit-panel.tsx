@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ApiElement, ApiProject, ApiScreen } from "@/lib/api";
 import {
   BackgroundSection,
@@ -123,23 +123,120 @@ function Row({
   );
 }
 
-function MiniButtons() {
+type MiniTool = "opacity" | "rotate" | "dimensions";
+
+/** Per-element opacity / rotation / exact-geometry toggles. */
+function MiniButtons({
+  active,
+  onToggle,
+}: {
+  active: MiniTool | null;
+  onToggle: (tool: MiniTool) => void;
+}) {
+  const tools: { id: MiniTool; label: string; Icon: (p: { className?: string }) => React.ReactElement }[] = [
+    { id: "opacity", label: "Opacity", Icon: ContrastIcon },
+    { id: "rotate", label: "Rotate", Icon: RotateIcon },
+    { id: "dimensions", label: "Exact dimensions", Icon: RulerIcon },
+  ];
   return (
     <>
-      <button type="button" aria-label="Opacity" className="btn btn-secondary h-7 px-2">
-        <ContrastIcon className="h-3.5 w-3.5" />
-      </button>
-      <button type="button" aria-label="Rotate" className="btn btn-secondary h-7 px-2">
-        <RotateIcon className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        aria-label="Exact dimensions"
-        className="btn btn-secondary h-7 px-2"
-      >
-        <RulerIcon className="h-3.5 w-3.5" />
-      </button>
+      {tools.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          aria-label={t.label}
+          aria-pressed={active === t.id}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(t.id);
+          }}
+          className={`btn h-7 px-2 ${active === t.id ? "btn-primary" : "btn-secondary"}`}
+        >
+          <t.Icon className="h-3.5 w-3.5" />
+        </button>
+      ))}
     </>
+  );
+}
+
+/** The control revealed by the mini buttons, above the element's own panel. */
+function MiniTools({
+  tool,
+  el,
+  patch,
+}: {
+  tool: MiniTool;
+  el: ApiElement;
+  patch: (fn: (x: ApiElement) => ApiElement) => void;
+}) {
+  const num = "w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900";
+
+  if (tool === "opacity") {
+    const value = Math.round((el.opacity ?? 1) * 100);
+    return (
+      <div className="mb-3 rounded-lg bg-gray-50 p-3">
+        <label className="flex items-center gap-3 text-xs font-medium text-gray-600">
+          Opacity
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={value}
+            onChange={(e) => patch((x) => ({ ...x, opacity: Number(e.target.value) / 100 }))}
+            className="flex-1"
+          />
+          <span className="w-10 text-right tabular-nums">{value}%</span>
+        </label>
+      </div>
+    );
+  }
+
+  if (tool === "rotate") {
+    const value = Math.round(el.rot ?? 0);
+    return (
+      <div className="mb-3 rounded-lg bg-gray-50 p-3">
+        <label className="flex items-center gap-3 text-xs font-medium text-gray-600">
+          Rotate
+          <input
+            type="range"
+            min={-180}
+            max={180}
+            value={value}
+            onChange={(e) => patch((x) => ({ ...x, rot: Number(e.target.value) }))}
+            className="flex-1"
+          />
+          <span className="w-10 text-right tabular-nums">{value}°</span>
+        </label>
+      </div>
+    );
+  }
+
+  const fields: { key: "x" | "y" | "w" | "h"; label: string }[] = [
+    { key: "x", label: "X" },
+    { key: "y", label: "Y" },
+    { key: "w", label: "W" },
+    { key: "h", label: "H" },
+  ];
+  return (
+    <div className="mb-3 grid grid-cols-4 gap-2 rounded-lg bg-gray-50 p-3">
+      {fields.map((f) => (
+        <label key={f.key} className="text-[11px] font-medium text-gray-600">
+          {f.label} (%)
+          <input
+            type="number"
+            step={0.1}
+            className={num}
+            value={Number((el.loc[f.key] * 100).toFixed(2))}
+            onChange={(e) =>
+              patch((x) => ({
+                ...x,
+                loc: { ...x.loc, [f.key]: Number(e.target.value) / 100 },
+              }))
+            }
+          />
+        </label>
+      ))}
+    </div>
   );
 }
 
@@ -177,6 +274,7 @@ export function SceneEditPanel({
   const open = openKey;
   const toggle = (k: string) => onOpenKeyChange(open === k ? null : k);
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [miniTool, setMiniTool] = useState<{ key: string; tool: MiniTool } | null>(null);
 
   // Keep the section chosen on the canvas in view.
   useEffect(() => {
@@ -328,10 +426,23 @@ export function SceneEditPanel({
                 title={meta.label}
                 subtitle={layerName(g)}
                 Icon={meta.Icon}
-                actions={<MiniButtons />}
+                actions={
+                  <MiniButtons
+                    active={miniTool?.key === key ? miniTool.tool : null}
+                    onToggle={(tool) => {
+                      setMiniTool((prev) =>
+                        prev?.key === key && prev.tool === tool ? null : { key, tool },
+                      );
+                      if (open !== key) toggle(key);
+                    }}
+                  />
+                }
                 open={open === key}
                 onToggle={() => toggle(key)}
               >
+                {miniTool?.key === key && (
+                  <MiniTools tool={miniTool.tool} el={el} patch={patch} />
+                )}
                 {el.type === "title" && <TitleSection el={el} patch={patch} />}
                 {el.type === "device" && <DeviceSection el={el} patch={patch} />}
                 {el.type === "image" && <ImageSection el={el} patch={patch} />}

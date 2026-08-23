@@ -5,6 +5,8 @@ import type { ApiProject, ApiScreen } from "@/lib/api";
 import type { OutputSize } from "@/lib/devices";
 import { drawLayeredScreen } from "@/lib/render-layers";
 import { loadImage } from "@/lib/render";
+import { screenAssetUrls } from "@/lib/assets";
+import { ensureFonts, screenFonts } from "@/lib/fonts";
 
 export function LayeredCanvas({
   screen,
@@ -25,10 +27,6 @@ export function LayeredCanvas({
 
   useEffect(() => {
     let cancelled = false;
-    const srcs: string[] = [];
-    for (const group of screen.groups)
-      for (const el of group)
-        if (el.device?.screenshot) srcs.push(el.device.screenshot);
 
     const paint = () => {
       const canvas = ref.current;
@@ -40,23 +38,34 @@ export function LayeredCanvas({
       void drawLayeredScreen(ctx, screen, project, output, cache.current);
     };
 
-    const missing = srcs.filter((s) => !cache.current.has(s));
-    if (missing.length) {
-      Promise.all(
-        missing.map((s) =>
-          loadImage(s)
-            .then((img) => cache.current.set(s, img))
-            .catch(() => undefined),
-        ),
-      ).then(() => {
-        if (!cancelled) {
-          force((n) => n + 1);
-          paint();
-        }
-      });
-    }
-    void document.fonts.ready.then(() => !cancelled && paint());
+    /* Paint what is already available, then repaint as fonts and art land. */
     paint();
+
+    const fonts = ensureFonts(
+      screenFonts(screen, project.titleFont, project.subtitleFont),
+    ).then(() => {
+      if (!cancelled) paint();
+    });
+
+    const missing = screenAssetUrls(screen).filter(
+      (url) => !cache.current.has(url),
+    );
+    const art = missing.length
+      ? Promise.all(
+          missing.map((url) =>
+            loadImage(url)
+              .then((img) => cache.current.set(url, img))
+              .catch(() => undefined),
+          ),
+        )
+      : Promise.resolve();
+
+    void Promise.all([fonts, art]).then(() => {
+      if (cancelled) return;
+      force((n) => n + 1);
+      paint();
+    });
+
     return () => {
       cancelled = true;
     };

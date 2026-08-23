@@ -10,6 +10,7 @@ export type ApiScreen = {
   backgroundColor2?: string;
   backgroundAngle?: number;
   backgroundImage?: string;
+  backgroundFit?: "contain" | "cover";
   backgroundPattern?: string;
   panoramic?: boolean;
   groups: ApiElement[][];
@@ -18,34 +19,65 @@ export type ApiScreen = {
 export type Fit = "contain" | "cover" | "fill";
 export type VPos = "top" | "center" | "bottom";
 
+export type ApiShadow = { x: number; y: number; blur: number; color: string };
+
 export type ApiElement = {
   type: "title" | "image" | "device" | "spacer";
   loc: { w: number; h: number; x: number; y: number; anchor: "middle" | "topLeft" };
   rot?: number;
+  /** 0–1; multiplies whatever the element paints. */
+  opacity?: number;
+  shadow?: ApiShadow;
   title?: ApiText;
   subtitle?: ApiText;
   /** Shape drawn behind the caption (see DECORATIONS). */
   decoration?: string;
   decorationColor?: string;
+  decorationStrokeWidth?: number;
+  padding?: number;
   /** Caption placement inside its box. */
   position?: VPos;
   matchTextSize?: boolean;
   asset?: string | null;
-  assetShape?: "blob" | "sparkle" | "wave" | "generic";
+  assetShape?: "blob" | "sparkle" | "wave" | "arrow" | "laurel" | "generic";
   fit?: Fit;
   vPos?: VPos;
   svgColor?: string;
+  svgStrokeWidth?: number;
   device?: {
     variant?: string;
     colour?: string;
     screenshot?: string;
+    screenshotWidth?: number;
+    screenshotHeight?: number;
     style?: "real-dark" | "real-light" | "flat-dark" | "flat-light";
     orientation?: "portrait" | "landscape";
+    frameColor?: string;
+    frameSize?: number;
+    padding?: number;
+    paddingColor?: string;
   };
+};
+
+/** One styled span within a caption line. */
+export type ApiTextRun = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
+  gradient?: string | null;
+};
+
+export type ApiTextLine = {
+  runs: ApiTextRun[];
+  align?: "left" | "center" | "right" | null;
 };
 
 export type ApiText = {
   text: string;
+  /** Authored line/run styling; `text` is the plain-text fallback. */
+  lines?: ApiTextLine[];
   color?: string;
   gradient?: string | null;
   bold?: boolean;
@@ -54,6 +86,9 @@ export type ApiText = {
   align?: "left" | "center" | "right";
   font?: string;
   lineHeight?: number;
+  charSpacing?: number;
+  /** Cap on rendered size, as a fraction of the screen height. */
+  maxFontSize?: number;
   /** Highlight drawn behind the text run. */
   background?: string | null;
 };

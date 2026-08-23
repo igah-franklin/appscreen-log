@@ -1,6 +1,8 @@
-import type { ApiElement, ApiScreen, ApiText } from "./api";
+import type { ApiElement, ApiScreen, ApiText, ApiTextRun } from "./api";
 import type { OutputSize } from "./devices";
 import { FRAME_SPECS } from "./devices";
+import { assetUrl } from "./assets";
+import { gradientAngle, gradientStops, isGradient } from "./gradient";
 
 /**
  * Renders a captured template layout. Every element is positioned as a
@@ -9,7 +11,12 @@ import { FRAME_SPECS } from "./devices";
 export async function drawLayeredScreen(
   ctx: CanvasRenderingContext2D,
   screen: ApiScreen,
-  project: { background?: string; primaryColor?: string; titleFont?: string },
+  project: {
+    background?: string;
+    primaryColor?: string;
+    titleFont?: string;
+    subtitleFont?: string;
+  },
   output: OutputSize,
   images: Map<string, HTMLImageElement>,
 ) {
@@ -22,23 +29,28 @@ export async function drawLayeredScreen(
 
   const style = screen.backgroundStyle ?? "solid";
   const bg = screen.background ?? project.background;
-  if (style === "gradient") {
-    const g = linearGradient(
-      ctx,
-      screen.backgroundAngle ?? 160,
-      { x: 0, y: 0, w: W, h: H },
-      [bg ?? "#ffffff", screen.backgroundColor2 ?? "#ffffff"],
-    );
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-  } else if (style === "solid" && bg) {
-    ctx.fillStyle = bg;
+  const full = { x: 0, y: 0, w: W, h: H };
+  if (style !== "none" && bg) {
+    /* A captured background is a colour or a whole CSS gradient string; the
+       editor's own gradient mode instead pairs two colours with an angle. */
+    if (isGradient(bg)) {
+      ctx.fillStyle = cssGradient(ctx, bg, full);
+    } else if (style === "gradient") {
+      ctx.fillStyle = linearGradient(ctx, screen.backgroundAngle ?? 160, full, [
+        bg,
+        screen.backgroundColor2 ?? bg,
+      ]);
+    } else {
+      ctx.fillStyle = bg;
+    }
     ctx.fillRect(0, 0, W, H);
   }
 
   if (screen.backgroundImage) {
-    const img = images.get(screen.backgroundImage);
-    if (img) drawFitted(ctx, img, { x: 0, y: 0, w: W, h: H }, "cover", "center");
+    const img = lookup(images, screen.backgroundImage);
+    if (img) {
+      drawFitted(ctx, img, { x: 0, y: 0, w: W, h: H }, screen.backgroundFit ?? "cover", "center");
+    }
   }
   if (screen.backgroundPattern && screen.backgroundPattern !== "None") {
     drawPattern(ctx, W, H, screen.backgroundPattern, project.primaryColor ?? "#7c5cff");
@@ -60,11 +72,37 @@ export async function drawLayeredScreen(
         ctx.rotate((el.rot * Math.PI) / 180);
         ctx.translate(-(box.x + box.w / 2), -(box.y + box.h / 2));
       }
+      if (typeof el.opacity === "number" && el.opacity < 1) {
+        ctx.globalAlpha = Math.max(0, el.opacity);
+      }
+      if (el.shadow) {
+        /* Shadow offsets and blur are authored as fractions of the box. */
+        ctx.shadowColor = el.shadow.color;
+        ctx.shadowBlur = el.shadow.blur * box.w;
+        ctx.shadowOffsetX = el.shadow.x * box.w;
+        ctx.shadowOffsetY = el.shadow.y * box.h;
+      }
 
       if (el.type === "title") {
-        if (el.decoration && el.decoration !== "None")
-          drawDecorationShape(ctx, el.decoration, box, el.decorationColor ?? accent);
-        drawTitle(ctx, el, box, W, project.titleFont);
+        if (el.decoration && decorationKind(el.decoration) !== "none") {
+          drawDecorationShape(
+            ctx,
+            el.decoration,
+            box,
+            el.decorationColor ?? el.title?.color ?? accent,
+            el.decorationStrokeWidth,
+          );
+        }
+        const inset = decorationInset(el.decoration, box);
+        drawTitle(
+          ctx,
+          el,
+          { ...box, x: box.x + inset, w: box.w - inset * 2 },
+          W,
+          H,
+          project.titleFont,
+          project.subtitleFont,
+        );
       } else if (el.type === "image") {
         drawDecoration(ctx, el, box, accent, images);
       } else if (el.type === "device") {
@@ -160,45 +198,78 @@ function drawPattern(
 }
 
 /** Shape drawn behind a caption, per the Decoration dropdown. */
+/** Reference ids and the older human labels both map onto one shape name. */
+function decorationKind(kind: string) {
+  return kind
+    .replace(/\s*-\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/ (.)/g, (_, c: string) => c.toUpperCase());
+}
+
+/**
+ * Caption decorations.
+ *
+ * The reference draws these from its own vector set; these are rebuilt to the
+ * same silhouettes so a captured caption keeps the shape it was authored with.
+ */
 function drawDecorationShape(
   ctx: CanvasRenderingContext2D,
-  kind: string,
+  rawKind: string,
   box: { x: number; y: number; w: number; h: number },
   color: string,
+  strokeWidth?: number,
 ) {
+  const kind = decorationKind(rawKind);
+  if (kind === "none") return;
+
   ctx.save();
   ctx.fillStyle = tint(color, 0.18);
-  ctx.strokeStyle = tint(color, 0.9);
-  ctx.lineWidth = Math.max(2, box.h * 0.02);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, box.h * (strokeWidth || 0.02));
   const { x, y, w, h } = box;
 
-  if (kind.startsWith("Laurel")) {
-    ctx.beginPath();
-    const r = Math.min(w, h) * 0.46;
-    const cx = x + w / 2;
-    const cy = y + h / 2;
-    for (const dir of [-1, 1]) {
-      ctx.beginPath();
-      ctx.arc(cx + dir * w * 0.34, cy, r, dir === -1 ? -1.2 : Math.PI - 1.9, dir === -1 ? 1.2 : Math.PI + 1.9);
-      ctx.stroke();
-    }
-  } else if (kind === "Rectangle" || kind === "Square") {
+  if (kind.startsWith("laurel")) {
+    drawLaurel(ctx, kind, box, color);
+  } else if (kind === "rectangle" || kind === "square") {
     ctx.fillRect(x, y, w, h);
-  } else if (kind === "Rounded Rectangle" || kind === "Rounded Square") {
+  } else if (kind === "roundedRectangle" || kind === "roundedSquare") {
     roundRect(ctx, x, y, w, h, Math.min(w, h) * 0.16);
     ctx.fill();
-  } else if (kind === "Oval" || kind === "Circle") {
+  } else if (kind === "oval" || kind === "circle") {
     ctx.beginPath();
-    const r = kind === "Circle" ? Math.min(w, h) / 2 : 0;
-    if (r) ctx.arc(x + w / 2, y + h / 2, r, 0, Math.PI * 2);
-    else ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+    if (kind === "circle") {
+      ctx.arc(x + w / 2, y + h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
+    } else {
+      ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+    }
     ctx.fill();
-  } else if (kind === "Badge") {
+  } else if (kind === "badge") {
     roundRect(ctx, x, y, w, h, h / 2);
     ctx.fill();
-  } else if (kind.startsWith("Comment") || kind.startsWith("Chat Bubble")) {
+  } else if (kind === "underline") {
+    const lw = Math.max(2, h * 0.06);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.04, y + h - lw);
+    ctx.quadraticCurveTo(x + w / 2, y + h - lw * 2.4, x + w * 0.96, y + h - lw);
+    ctx.stroke();
+  } else if (kind === "cloud") {
+    ctx.beginPath();
+    const r = h * 0.42;
+    ctx.moveTo(x + r, y + h - r * 0.6);
+    for (let i = 0; i <= 4; i += 1) {
+      const cx = x + w * (0.16 + i * 0.17);
+      const cy = y + h * (i % 2 ? 0.38 : 0.52);
+      ctx.arc(cx, cy, r * (i % 2 ? 0.95 : 0.75), 0, Math.PI * 2);
+    }
+    ctx.fill();
+  } else if (kind.startsWith("comment") || kind.startsWith("chatBubble")) {
     const left = kind.endsWith("Left");
-    const r = kind.startsWith("Chat") ? h * 0.32 : h * 0.14;
+    const r = kind.startsWith("chat") ? h * 0.32 : h * 0.14;
     roundRect(ctx, x, y, w, h * 0.86, r);
     ctx.fill();
     ctx.beginPath();
@@ -208,7 +279,7 @@ function drawDecorationShape(
     ctx.lineTo(left ? tx - w * 0.02 : tx + w * 0.12, y + h);
     ctx.closePath();
     ctx.fill();
-  } else if (kind === "Star Background") {
+  } else if (kind === "starBackground") {
     const cx = x + w / 2;
     const cy = y + h / 2;
     const R = Math.min(w, h) * 0.62;
@@ -225,6 +296,76 @@ function drawDecorationShape(
     ctx.fill();
   }
   ctx.restore();
+}
+
+/**
+ * A pair of laurel branches flanking the caption.
+ *
+ * Variants differ in how far the branches sit from the text and how tightly
+ * the leaves are packed: "compact" hugs the caption, "wide"/"wider" pushes the
+ * branches outwards.
+ */
+function drawLaurel(
+  ctx: CanvasRenderingContext2D,
+  kind: string,
+  box: { x: number; y: number; w: number; h: number },
+  color: string,
+) {
+  const spread = kind.includes("Wider") ? 0.5 : kind.includes("Wide") ? 0.47 : 0.44;
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
+  const height = box.h * (kind.includes("Compact") ? 0.86 : 1);
+  const half = height / 2;
+  const leaves = 8;
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineCap = "round";
+
+  for (const dir of [-1, 1]) {
+    /* Stem: bottom to top, bowing away from the caption. */
+    const stemX = cx + dir * box.w * spread;
+    const bow = height * 0.16;
+    ctx.beginPath();
+    ctx.lineWidth = Math.max(1.5, height * 0.045);
+    ctx.moveTo(stemX, cy + half);
+    ctx.quadraticCurveTo(stemX + dir * bow, cy, stemX, cy - half);
+    ctx.stroke();
+
+    for (let i = 0; i < leaves; i += 1) {
+      const t = (i + 0.5) / leaves;
+      /* Point on the quadratic stem. */
+      const u = 1 - t;
+      const px = u * u * stemX + 2 * u * t * (stemX + dir * bow) + t * t * stemX;
+      const py = u * u * (cy + half) + 2 * u * t * cy + t * t * (cy - half);
+
+      /* Leaves are longest mid-branch and always point up and outward. */
+      const len = height * 0.26 * (0.55 + 0.45 * Math.sin(Math.PI * t));
+      /* Leaves fan upward and away from the caption, tightening at the tip. */
+      const angle = -dir * (Math.PI / 2) + dir * (0.9 - 0.55 * t);
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.ellipse(len * 0.55, 0, len * 0.55, len * 0.15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+/** Horizontal room a decoration needs on each side of the caption. */
+function decorationInset(rawKind: string | undefined, box: { w: number }) {
+  if (!rawKind) return 0;
+  const kind = decorationKind(rawKind);
+  if (kind.startsWith("laurel")) return box.w * 0.16;
+  if (kind === "badge" || kind === "roundedRectangle" || kind === "rectangle") {
+    return box.w * 0.04;
+  }
+  return 0;
 }
 
 /** Draws an image into a box honouring Fit and Vertical position. */
@@ -255,73 +396,183 @@ function drawFitted(
   ctx.restore();
 }
 
+/**
+ * A CSS gradient string as a canvas gradient across `box`.
+ *
+ * Angles run clockwise from "to top" in CSS; canvas wants two points, so the
+ * angle becomes a line through the box centre.
+ */
+function cssGradient(
+  ctx: CanvasRenderingContext2D,
+  value: string,
+  box: { x: number; y: number; w: number; h: number },
+): CanvasGradient | string {
+  const stops = gradientStops(value);
+  if (stops.length < 2) return stops[0]?.color ?? "#ffffff";
+
+  const rad = ((gradientAngle(value) - 90) * Math.PI) / 180;
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
+  const len = (Math.abs(box.w * Math.cos(rad)) + Math.abs(box.h * Math.sin(rad))) / 2;
+  const g = ctx.createLinearGradient(
+    cx - Math.cos(rad) * len,
+    cy - Math.sin(rad) * len,
+    cx + Math.cos(rad) * len,
+    cy + Math.sin(rad) * len,
+  );
+  stops.forEach((s, i) =>
+    g.addColorStop(Math.min(1, Math.max(0, s.at ?? i / (stops.length - 1))), s.color),
+  );
+  return g;
+}
+
 function paint(
   ctx: CanvasRenderingContext2D,
   t: ApiText,
   box: { x: number; y: number; w: number; h: number },
 ) {
-  if (t.gradient) {
-    const stops = [
-      ...t.gradient.matchAll(
-        /(rgba?\([^)]*\)|#[0-9a-f]{3,8})\s*(\d+(?:\.\d+)?)?%?/gi,
-      ),
-    ].map((m) => ({ color: m[1], at: m[2] ? Number(m[2]) / 100 : null }));
-
-    if (stops.length >= 2) {
-      // CSS gradient angles run clockwise from "to top"; canvas wants points.
-      const deg = Number(t.gradient.match(/(-?\d+(?:\.\d+)?)deg/)?.[1] ?? 180);
-      const rad = ((deg - 90) * Math.PI) / 180;
-      const cx = box.x + box.w / 2;
-      const cy = box.y + box.h / 2;
-      const len =
-        (Math.abs(box.w * Math.cos(rad)) + Math.abs(box.h * Math.sin(rad))) / 2;
-      const g = ctx.createLinearGradient(
-        cx - Math.cos(rad) * len,
-        cy - Math.sin(rad) * len,
-        cx + Math.cos(rad) * len,
-        cy + Math.sin(rad) * len,
-      );
-      stops.forEach((s, i) =>
-        g.addColorStop(
-          Math.min(1, Math.max(0, s.at ?? i / (stops.length - 1))),
-          s.color,
-        ),
-      );
-      return g;
-    }
-  }
+  if (t.gradient) return cssGradient(ctx, t.gradient, box);
+  if (t.color && isGradient(t.color)) return cssGradient(ctx, t.color, box);
   return t.color || "#111827";
 }
 
+/** A caption line broken into its styled runs, ready to measure and paint. */
+type LaidLine = { runs: ApiTextRun[]; align: "left" | "center" | "right" };
+
+/** Explicit authored lines when present, otherwise the wrapped plain text. */
+function layout(
+  ctx: CanvasRenderingContext2D,
+  t: ApiText,
+  maxWidth: number,
+): LaidLine[] {
+  const fallbackAlign = t.align ?? "left";
+  if (t.lines?.length) {
+    const out: LaidLine[] = [];
+    for (const line of t.lines) {
+      const align = (line.align ?? fallbackAlign) as LaidLine["align"];
+      /* An authored line still wraps if it cannot fit the box. */
+      for (const runs of wrapRuns(ctx, line.runs, maxWidth)) {
+        out.push({ runs, align });
+      }
+    }
+    return out;
+  }
+  return wrap(ctx, t.text, maxWidth).map((text) => ({
+    runs: [{ text }],
+    align: fallbackAlign,
+  }));
+}
+
+/** Greedy word wrap that keeps each word's own run styling. */
+function wrapRuns(
+  ctx: CanvasRenderingContext2D,
+  runs: ApiTextRun[],
+  maxWidth: number,
+): ApiTextRun[][] {
+  const words: ApiTextRun[] = [];
+  for (const run of runs) {
+    const parts = run.text.split(/(\s+)/).filter((p) => p !== "");
+    for (const part of parts) words.push({ ...run, text: part });
+  }
+  const lines: ApiTextRun[][] = [];
+  let line: ApiTextRun[] = [];
+  let width = 0;
+  for (const word of words) {
+    const w = measureRun(ctx, word);
+    if (line.length && width + w > maxWidth && word.text.trim()) {
+      lines.push(line);
+      line = [];
+      width = 0;
+      if (!word.text.trim()) continue;
+    }
+    line.push(word);
+    width += w;
+  }
+  if (line.length) lines.push(line);
+  return lines.length ? lines : [[]];
+}
+
+function measureRun(ctx: CanvasRenderingContext2D, run: ApiTextRun) {
+  const saved = ctx.font;
+  ctx.font = runFont(saved, run);
+  const w = ctx.measureText(run.text).width;
+  ctx.font = saved;
+  return w;
+}
+
+/** Swaps the weight/style of the current font for one run's own. */
+function runFont(base: string, run: ApiTextRun) {
+  if (!run.bold && !run.italic) return base;
+  const match = base.match(/^(italic\s+)?(\d+)\s+(.*)$/);
+  if (!match) return base;
+  const weight = run.bold ? 700 : Number(match[2]);
+  const italic = run.italic || Boolean(match[1]) ? "italic " : "";
+  return `${italic}${weight} ${match[3]}`;
+}
+
+function lineWidth(ctx: CanvasRenderingContext2D, runs: ApiTextRun[], spacing: number) {
+  return runs.reduce(
+    (sum, r) => sum + measureRun(ctx, r) + spacing * r.text.length,
+    0,
+  );
+}
+
+/**
+ * Paints a caption.
+ *
+ * Captured layouts carry the authored line breaks, per-line alignment and
+ * per-run styling, plus a `maxFontSize` ceiling expressed as a fraction of the
+ * screen height — all of which the reference honours, so this does too. Text
+ * still shrinks to fit its box when a translation runs long.
+ */
 function drawTitle(
   ctx: CanvasRenderingContext2D,
   el: ApiElement,
   box: { x: number; y: number; w: number; h: number },
   W: number,
+  H: number,
   fallbackFont?: string,
+  fallbackSubtitleFont?: string,
 ) {
   const t = el.title;
   if (!t?.text) return;
 
-  // Fit the headline to its box: start large and shrink until it fits.
-  let size = box.h * 0.42;
-  let lines: string[] = [];
   const lineFactor = t.lineHeight && t.lineHeight > 0 ? t.lineHeight * 1.16 : 1.16;
-  for (let i = 0; i < 40; i += 1) {
+  const ceiling = t.maxFontSize ? H * t.maxFontSize : Infinity;
+
+  const sub = el.subtitle;
+
+  /* Shrink until the caption *and* its subtitle fit the box together. */
+  let size = Math.min(box.h * 0.72, ceiling);
+  let lines: LaidLine[] = [];
+  let subLines: LaidLine[] = [];
+  let blockH = 0;
+  for (let i = 0; i < 80; i += 1) {
     ctx.font = fontFor(t, fallbackFont, size);
-    lines = wrap(ctx, t.text, box.w);
-    if (lines.length * size * lineFactor <= box.h || size < W * 0.02) break;
-    size *= 0.94;
+    lines = layout(ctx, t, box.w);
+
+    subLines = [];
+    const subSize = size * 0.42;
+    if (sub?.text) {
+      ctx.font = fontFor(sub, fallbackSubtitleFont ?? fallbackFont, subSize);
+      subLines = layout(ctx, sub, box.w);
+      ctx.font = fontFor(t, fallbackFont, size);
+    }
+
+    blockH =
+      lines.length * size * lineFactor +
+      (subLines.length ? size * 0.5 + subLines.length * subSize * 1.3 : 0);
+
+    const widthFits = lines.every(
+      (l) => lineWidth(ctx, l.runs, size * (t.charSpacing ?? 0)) <= box.w + 0.5,
+    );
+    if ((blockH <= box.h && widthFits) || size < W * 0.012) break;
+    size *= 0.96;
   }
 
+  const spacing = size * (t.charSpacing ?? 0);
   const subSize = size * 0.42;
-  const sub = el.subtitle?.text ? wrapWith(ctx, el.subtitle, fallbackFont, subSize, box.w) : [];
-  const blockH =
-    lines.length * size * lineFactor +
-    (sub.length ? size * 0.5 + sub.length * subSize * 1.3 : 0);
 
-  const align = t.align ?? "left";
-  const x = align === "center" ? box.x + box.w / 2 : align === "right" ? box.x + box.w : box.x;
   const pos = el.position ?? (el.loc.anchor === "middle" ? "center" : "top");
   let y =
     pos === "top"
@@ -330,55 +581,88 @@ function drawTitle(
         ? box.y + box.h - blockH
         : box.y + (box.h - blockH) / 2;
 
-  ctx.textAlign = align;
   ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+
   ctx.font = fontFor(t, fallbackFont, size);
+  y = drawLines(ctx, lines, t, box, y, size, lineFactor, spacing, fallbackFont);
 
-  if (t.background) {
-    ctx.save();
-    ctx.fillStyle = t.background;
-    for (let i = 0; i < lines.length; i += 1) {
-      const lw = ctx.measureText(lines[i]).width;
-      const lx = align === "center" ? x - lw / 2 : align === "right" ? x - lw : x;
-      const ly = y + i * size * lineFactor;
-      const pad = size * 0.16;
-      roundRect(ctx, lx - pad, ly - pad * 0.5, lw + pad * 2, size * 1.16 + pad, pad * 0.9);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  ctx.fillStyle = paint(ctx, t, box);
-  for (const line of lines) {
-    ctx.fillText(line, x, y);
-    if (t.underline) {
-      const lw = ctx.measureText(line).width;
-      const ux = align === "center" ? x - lw / 2 : align === "right" ? x - lw : x;
-      ctx.fillRect(ux, y + size * 1.04, lw, Math.max(2, size * 0.055));
-    }
-    y += size * lineFactor;
-  }
-
-  if (sub.length && el.subtitle) {
+  if (subLines.length && sub) {
     y += size * 0.5;
-    ctx.font = fontFor(el.subtitle, fallbackFont, subSize);
-    ctx.fillStyle = paint(ctx, el.subtitle, box);
-    for (const line of sub) {
-      ctx.fillText(line, x, y);
-      y += subSize * 1.3;
-    }
+    ctx.font = fontFor(sub, fallbackSubtitleFont ?? fallbackFont, subSize);
+    drawLines(
+      ctx,
+      subLines,
+      sub,
+      box,
+      y,
+      subSize,
+      1.3,
+      subSize * (sub.charSpacing ?? 0),
+      fallbackSubtitleFont ?? fallbackFont,
+    );
   }
 }
 
-function wrapWith(
+/** Draws one block of laid-out lines, run by run. Returns the next baseline. */
+function drawLines(
   ctx: CanvasRenderingContext2D,
+  lines: LaidLine[],
   t: ApiText,
-  fallbackFont: string | undefined,
+  box: { x: number; y: number; w: number; h: number },
+  top: number,
   size: number,
-  maxWidth: number,
+  lineFactor: number,
+  spacing: number,
+  fallbackFont?: string,
 ) {
-  ctx.font = fontFor(t, fallbackFont, size);
-  return wrap(ctx, t.text, maxWidth);
+  const base = fontFor(t, fallbackFont, size);
+  let y = top;
+
+  for (const line of lines) {
+    const width = lineWidth(ctx, line.runs, spacing);
+    const startX =
+      line.align === "center"
+        ? box.x + (box.w - width) / 2
+        : line.align === "right"
+          ? box.x + box.w - width
+          : box.x;
+
+    if (t.background) {
+      ctx.save();
+      ctx.fillStyle = t.background;
+      const pad = size * 0.16;
+      roundRect(ctx, startX - pad, y - pad * 0.5, width + pad * 2, size * 1.16 + pad, pad * 0.9);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    let x = startX;
+    for (const run of line.runs) {
+      ctx.font = runFont(base, run);
+      ctx.fillStyle = run.gradient
+        ? paint(ctx, { ...t, gradient: run.gradient }, box)
+        : run.color ?? paint(ctx, t, box);
+
+      if (spacing) {
+        for (const ch of run.text) {
+          ctx.fillText(ch, x, y);
+          x += ctx.measureText(ch).width + spacing;
+        }
+      } else {
+        ctx.fillText(run.text, x, y);
+        x += ctx.measureText(run.text).width;
+      }
+
+      if (run.underline || t.underline) {
+        const runW = measureRun(ctx, run) + spacing * run.text.length;
+        ctx.fillRect(x - runW, y + size * 1.04, runW, Math.max(2, size * 0.055));
+      }
+    }
+    ctx.font = base;
+    y += size * lineFactor;
+  }
+  return y;
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
@@ -411,9 +695,10 @@ function drawDecoration(
   accent: string,
   images: Map<string, HTMLImageElement>,
 ) {
-  const custom = el.device?.screenshot ?? undefined;
-  if (custom && images.has(custom)) {
-    drawFitted(ctx, images.get(custom)!, box, el.fit ?? "contain", el.vPos ?? "center");
+  /* Real artwork when the slot's asset has loaded, tinted if the layout asks. */
+  const art = lookup(images, el.asset) ?? lookup(images, el.device?.screenshot);
+  if (art) {
+    drawArtwork(ctx, art, box, el.fit ?? "contain", el.vPos ?? "center", el.svgColor);
     return;
   }
 
@@ -502,6 +787,42 @@ function tint(color: string, alpha: number) {
   return color;
 }
 
+/** Frame body colours, keyed by the reference's own device colour names. */
+const FRAME_COLOURS: Record<string, string> = {
+  black: "#101014",
+  dark: "#1c1c20",
+  space: "#2b2b30",
+  silver: "#dcdce2",
+  light: "#f2f2f5",
+  reallight: "#f4f4f7",
+  white: "#f8f8fa",
+  gold: "#e6d2ad",
+  realgold: "#e3cda6",
+  rose: "#e8c4bd",
+  coral: "#e9a08d",
+  strawberry: "#d9536a",
+  green: "#a8c9a4",
+  earth: "#b09a82",
+};
+
+function frameColour(device: ApiElement["device"]) {
+  const named = device?.colour && FRAME_COLOURS[device.colour];
+  if (named) return named;
+  const light =
+    device?.style === "real-light" ||
+    device?.style === "flat-light" ||
+    device?.colour === "white";
+  return light ? "#f2f2f5" : "#101014";
+}
+
+/**
+ * Draws the device element.
+ *
+ * The reference offers several frame treatments and captured layouts use all
+ * of them: `full` is the device body with its bezel, `dynamic` is a thin
+ * coloured border of the layout's own choosing, and `none` is a frameless
+ * screenshot with just rounded corners.
+ */
 function drawDevice(
   ctx: CanvasRenderingContext2D,
   el: ApiElement,
@@ -513,7 +834,11 @@ function drawDevice(
   const spec = FRAME_SPECS[kind as keyof typeof FRAME_SPECS];
   if (!spec) return;
 
-  // Fit the device into the element box, preserving the frame's aspect ratio.
+  const variant = el.device?.variant ?? "full";
+  const frameless = variant === "none";
+  const dynamic = variant === "dynamic";
+
+  /* Fit the device into the element box, preserving the frame's aspect ratio. */
   let w = box.w;
   let h = w * spec.aspect;
   if (h > box.h) {
@@ -523,31 +848,45 @@ function drawDevice(
   const x = box.x + (box.w - w) / 2;
   const y = el.loc.anchor === "middle" ? box.y + (box.h - h) / 2 : box.y;
 
-  const radius = w * spec.radius;
-  const bezel = w * spec.bezel;
+  const body = frameColour(el.device);
+  const bezel = frameless
+    ? 0
+    : dynamic
+      ? w * (el.device?.frameSize ?? 0.02)
+      : w * spec.bezel;
+  const radius = w * (frameless ? spec.radius * 0.42 : spec.radius);
+
+  if (!frameless) {
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.shadowBlur = w * 0.08;
+    ctx.shadowOffsetY = w * 0.025;
+    ctx.fillStyle = dynamic ? el.device?.frameColor ?? body : body;
+    roundRect(ctx, x, y, w, h, radius);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* A dynamic frame can sit on a padded plate of its own colour. */
+  const pad = dynamic ? w * (el.device?.padding ?? 0) : 0;
+  if (pad > 0) {
+    ctx.save();
+    ctx.fillStyle = el.device?.paddingColor ?? "rgba(255,255,255,0.2)";
+    roundRect(ctx, x + bezel, y + bezel, w - bezel * 2, h - bezel * 2, Math.max(radius - bezel, 2));
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const inset = bezel + pad;
+  const sx = x + inset;
+  const sy = y + inset;
+  const sw = w - inset * 2;
+  const sh = h - inset * 2;
 
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.3)";
-  ctx.shadowBlur = w * 0.08;
-  ctx.shadowOffsetY = w * 0.025;
-  const light =
-    el.device?.style === "real-light" || el.device?.style === "flat-light" ||
-    el.device?.colour === "white";
-  ctx.fillStyle = light ? "#f2f2f5" : "#101014";
-  roundRect(ctx, x, y, w, h, radius);
-  ctx.fill();
-  ctx.restore();
-
-  const sx = x + bezel;
-  const sy = y + bezel;
-  const sw = w - bezel * 2;
-  const sh = h - bezel * 2;
-
-  ctx.save();
-  roundRect(ctx, sx, sy, sw, sh, Math.max(radius - bezel, 2));
+  roundRect(ctx, sx, sy, sw, sh, Math.max(radius - inset, 2));
   ctx.clip();
-  const shot = el.device?.screenshot;
-  const img = shot ? images.get(shot) : undefined;
+  const img = lookup(images, el.device?.screenshot);
   if (img) {
     drawFitted(
       ctx,
@@ -561,10 +900,11 @@ function drawDevice(
   }
   ctx.restore();
 
-  if (spec.notch && el.device?.style !== "flat-dark" && el.device?.style !== "flat-light") {
+  const flat = el.device?.style === "flat-dark" || el.device?.style === "flat-light";
+  if (spec.notch && !frameless && !dynamic && !flat) {
     const nw = sw * 0.34;
     const nh = sw * 0.085;
-    ctx.fillStyle = light ? "#f2f2f5" : "#101014";
+    ctx.fillStyle = body;
     roundRect(ctx, sx + (sw - nw) / 2, sy + nh * 0.35, nw, nh, nh / 2);
     ctx.fill();
   }
@@ -627,4 +967,48 @@ function roundRect(
   ctx.arcTo(x, y + h, x, y, rr);
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
+}
+
+/** Image cache lookup that accepts either a storage path or a full URL. */
+function lookup(
+  images: Map<string, HTMLImageElement>,
+  id: string | null | undefined,
+): HTMLImageElement | undefined {
+  if (!id) return undefined;
+  const url = assetUrl(id);
+  return (url ? images.get(url) : undefined) ?? images.get(id);
+}
+
+/**
+ * Draws a decoration asset. `svgColor` recolours the artwork the way the
+ * reference does — the shape is used as a mask and filled with the colour.
+ */
+function drawArtwork(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  box: { x: number; y: number; w: number; h: number },
+  fit: "contain" | "cover" | "fill",
+  vPos: "top" | "center" | "bottom",
+  svgColor?: string,
+) {
+  if (!svgColor) {
+    drawFitted(ctx, img, box, fit, vPos);
+    return;
+  }
+  const pad = Math.ceil(Math.max(box.w, box.h) * 0.02) + 2;
+  const w = Math.max(1, Math.ceil(box.w) + pad * 2);
+  const h = Math.max(1, Math.ceil(box.h) + pad * 2);
+  const tintCanvas = document.createElement("canvas");
+  tintCanvas.width = w;
+  tintCanvas.height = h;
+  const tctx = tintCanvas.getContext("2d");
+  if (!tctx) {
+    drawFitted(ctx, img, box, fit, vPos);
+    return;
+  }
+  drawFitted(tctx, img, { x: pad, y: pad, w: box.w, h: box.h }, fit, vPos);
+  tctx.globalCompositeOperation = "source-in";
+  tctx.fillStyle = svgColor;
+  tctx.fillRect(0, 0, w, h);
+  ctx.drawImage(tintCanvas, box.x - pad, box.y - pad);
 }

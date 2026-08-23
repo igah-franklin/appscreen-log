@@ -7,7 +7,11 @@ import { drawLayeredScreen } from "@/lib/render-layers";
 import { loadImage } from "@/lib/render";
 import { hitTest, elementKey, type ElementRef } from "@/lib/hit-test";
 import { createZip, type ZipEntry } from "@/lib/zip";
+import { screenAssetUrls } from "@/lib/assets";
+import { ensureFonts, screenFonts } from "@/lib/fonts";
 import { LayeredCanvas } from "./layered-canvas";
+import { OutputSizeMenu } from "./output-size-menu";
+import { OutputSizesDialog } from "./output-sizes-dialog";
 import { SceneEditPanel } from "./scene-edit-panel";
 import { SceneToolbar } from "./scene-toolbar";
 import { SmallScreenNotice } from "./small-screen-notice";
@@ -34,6 +38,7 @@ export function LayeredEditor({
   const [zoom, setZoom] = useState(100);
   const [status, setStatus] = useState<string | null>(null);
   const [showSizeMenu, setShowSizeMenu] = useState(false);
+  const [showSizes, setShowSizes] = useState(false);
   const saveTimer = useRef<number | null>(null);
   const dirty = useRef(false);
 
@@ -137,15 +142,15 @@ export function LayeredEditor({
     for (const size of sizes) {
       for (let i = 0; i < project.screens.length; i += 1) {
         const screen = project.screens[i];
-        const srcs = [screen.backgroundImage];
-        for (const group of screen.groups)
-          for (const el of group) srcs.push(el.device?.screenshot);
-        for (const src of srcs) {
-          if (src && !cache.has(src)) {
+        await ensureFonts(
+          screenFonts(screen, project.titleFont, project.subtitleFont),
+        );
+        for (const src of screenAssetUrls(screen)) {
+          if (!cache.has(src)) {
             try {
               cache.set(src, await loadImage(src));
             } catch {
-              /* skip unloadable image */
+              /* a missing asset falls back to the placeholder shape */
             }
           }
         }
@@ -203,7 +208,7 @@ export function LayeredEditor({
           onUndo={() => undefined}
           onClear={() => mutate((p) => ({ ...p, screens: [] }))}
           onRestyle={() => flash("Restyle is not available in this build")}
-          onOpenSizes={() => flash("Setup opens the output size picker")}
+          onOpenSizes={() => setShowSizes(true)}
           onOpenBackground={() => setSelected(0)}
           onOpenLocalize={() => flash(`Language: ${project.language}`)}
           onOpenScreens={() => setSelected(0)}
@@ -213,36 +218,19 @@ export function LayeredEditor({
           onRefresh={() => flash("Re-rendered")}
         >
           {showSizeMenu && (
-            <div
-              role="menu"
-              className="absolute right-0 z-50 mt-1 w-64 overflow-hidden rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10"
-            >
-              {project.outputs.map((id) => {
-                const o = OUTPUT_BY_ID.get(id);
-                if (!o) return null;
-                return (
-                  <button
-                    key={id}
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      mutate((p) => ({ ...p, activeOutput: id }));
-                      setShowSizeMenu(false);
-                    }}
-                    className={`block w-full px-4 py-2 text-left text-sm ${
-                      id === project.activeOutput
-                        ? "bg-indigo-50 font-semibold text-indigo-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {o.label}
-                    <span className="ml-2 text-xs text-gray-400">
-                      {o.width}×{o.height}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <OutputSizeMenu
+              outputs={project.outputs}
+              activeOutput={project.activeOutput}
+              onSelect={(id) => {
+                mutate((p) => ({ ...p, activeOutput: id }));
+                setShowSizeMenu(false);
+              }}
+              onAddMore={() => {
+                setShowSizeMenu(false);
+                setShowSizes(true);
+              }}
+              onDismiss={() => setShowSizeMenu(false)}
+            />
           )}
         </SceneToolbar>
 
@@ -401,6 +389,22 @@ export function LayeredEditor({
             <KeyboardIcon className="h-4 w-4" />
           </button>
         </div>
+
+        {showSizes && (
+          <OutputSizesDialog
+            selected={project.outputs}
+            onClose={() => setShowSizes(false)}
+            onSave={(ids) =>
+              mutate((p) => ({
+                ...p,
+                outputs: ids,
+                activeOutput: ids.includes(p.activeOutput)
+                  ? p.activeOutput
+                  : ids[0],
+              }))
+            }
+          />
+        )}
       </div>
     </>
   );

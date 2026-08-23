@@ -29,6 +29,8 @@ import { LayeredEditor } from "./layered-editor";
 import { previewUrl } from "@/lib/images";
 import { ScreenCanvas } from "./screen-canvas";
 import { ScreenPanels } from "./panels";
+import { OutputSizeMenu } from "./output-size-menu";
+import { OutputSizesDialog } from "./output-sizes-dialog";
 
 const STORAGE_KEY = "appscreens.sandbox.project";
 
@@ -449,47 +451,19 @@ export function Editor() {
             <span aria-hidden="true">▾</span>
           </button>
           {showSizeMenu && (
-            <div
-              role="menu"
-              className="absolute right-0 z-50 mt-1 w-64 overflow-hidden rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10"
-            >
-              {project.outputs.map((id) => {
-                const o = OUTPUT_BY_ID.get(id);
-                if (!o) return null;
-                return (
-                  <button
-                    key={id}
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      update((p) => ({ ...p, activeOutput: id }), false);
-                      setShowSizeMenu(false);
-                    }}
-                    className={`block w-full px-4 py-2 text-left text-sm ${
-                      id === project.activeOutput
-                        ? "bg-indigo-50 font-semibold text-indigo-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {o.label}
-                    <span className="ml-2 text-xs text-gray-400">
-                      {o.width}×{o.height}
-                    </span>
-                  </button>
-                );
-              })}
-              <button
-                role="menuitem"
-                type="button"
-                onClick={() => {
-                  setShowSizeMenu(false);
-                  setShowSizes(true);
-                }}
-                className="block w-full border-t border-gray-100 px-4 py-2 text-left text-sm text-indigo-600 hover:bg-gray-50"
-              >
-                Add more sizes
-              </button>
-            </div>
+            <OutputSizeMenu
+              outputs={project.outputs}
+              activeOutput={project.activeOutput}
+              onSelect={(id) => {
+                update((p) => ({ ...p, activeOutput: id }), false);
+                setShowSizeMenu(false);
+              }}
+              onAddMore={() => {
+                setShowSizeMenu(false);
+                setShowSizes(true);
+              }}
+              onDismiss={() => setShowSizeMenu(false)}
+            />
           )}
         </div>
         <ToolbarButton
@@ -663,7 +637,7 @@ export function Editor() {
         />
       )}
       {showSizes && (
-        <SizesDialog
+        <OutputSizesDialog
           selected={project.outputs}
           onClose={() => setShowSizes(false)}
           onSave={(ids) =>
@@ -841,82 +815,6 @@ function LayoutDialog({
             </p>
           </button>
         ))}
-      </div>
-    </Dialog>
-  );
-}
-
-function SizesDialog({
-  selected,
-  onClose,
-  onSave,
-}: {
-  selected: string[];
-  onClose: () => void;
-  onSave: (ids: string[]) => void;
-}) {
-  const [ids, setIds] = useState<string[]>(selected);
-  const groups = ["Android", "Apple", "Custom"] as const;
-  return (
-    <Dialog title="Output Sizes" onClose={onClose}>
-      <p className="mb-4 text-sm text-gray-500">
-        Select the output sizes that you require for export.
-      </p>
-      {groups.map((g) => {
-        const list = OUTPUT_SIZES.filter((o) => o.store === g);
-        if (!list.length) return null;
-        return (
-          <div key={g} className="mb-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
-              {g}
-            </p>
-            <div className="space-y-1">
-              {list.map((o) => (
-                <label
-                  key={o.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-gray-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={ids.includes(o.id)}
-                    onChange={(e) =>
-                      setIds((v) =>
-                        e.target.checked
-                          ? [...v, o.id]
-                          : v.filter((x) => x !== o.id),
-                      )
-                    }
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600"
-                  />
-                  <span className="flex-1 text-sm text-gray-800">{o.label}</span>
-                  <span className="text-xs text-gray-400">
-                    {o.width}×{o.height}px
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={!ids.length}
-          onClick={() => {
-            onSave(ids);
-            onClose();
-          }}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
-        >
-          Update
-        </button>
       </div>
     </Dialog>
   );

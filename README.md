@@ -72,7 +72,7 @@ being edited). Sandbox projects carry a TTL index and expire after 7 days;
 account copies are kept.
 
 `npm run seed` upserts all 175 templates from `data/templates.json` and merges
-any captured designs from `data/layouts/*.json`.
+the captured designs from `data/layouts/*.json`.
 
 ## Start with Template
 
@@ -130,8 +130,12 @@ rebuilt to the reference's own measurements:
   and Device (upload your app screen, size, vertical offset, drop shadow).
 - **Output sizes** — the reference's Android and Apple presets at their real
   store dimensions (e.g. iPhone 6.9" 1320×2868, Android 16:9 2160×3840, Apple
-  Watch 410×502). Switching output re-renders every screen with the matching
-  device frame.
+  Watch 410×502). The toolbar pill drops the project's sizes in the reference's
+  order — Apple phones, iPads, then Android — with the active one in bold and an
+  *Add more sizes* row opening the Output Sizes sheet. Picking one re-renders
+  every screen at that aspect ratio with the matching device frame, and the
+  choice autosaves. The menu is portalled out of the toolbar, which scrolls
+  horizontally and would otherwise clip it.
 - **Direct selection** — hovering any element on a screenshot outlines it with a
   dashed rectangle; clicking it selects the screenshot, opens the panel and
   expands that element's own section (the selected element keeps an indigo
@@ -166,32 +170,61 @@ Screenshot previews are loaded from the reference site's own image proxy
 
 ## Capturing template designs
 
-`server/tools/capture-layout.js` runs the reference's own copy flow in a browser
-tab, decodes the resulting project, and normalises it into the layout shape the
-API stores. `server/tools/ingest-b64.py` writes a captured payload into
-`data/layouts/<templateId>.json` ready for `npm run seed`.
+All 175 designs are captured from the reference, so a copied template opens as
+the design it actually is — its own captions, fonts, colours, per-screen
+backgrounds, decoration artwork, device placement and rotation.
 
-Templates without a captured design still copy — they fall back to a generated
+`server/tools/capture-all.mjs` drives the reference's own *Start with Template →
+Copy Template to Sandbox* flow in a headless Chrome and reads back the
+`scenes/<ref>` document the app loads to perform the copy. That document arrives
+over Firestore's streaming Listen channel, so it is picked up by hooking
+`JSON.parse` in the page — response hooks never fire on a channel that stays
+open. Each screenshot's layers travel as a deflate-compressed base64 blob
+(`layersc`) which is inflated in Node.
+
+```bash
+node tools/capture-all.mjs              # every template still missing
+node tools/capture-all.mjs --force      # re-capture everything
+node tools/capture-all.mjs tRiGP Er5lI  # just these
+```
+
+Artwork is not copied: decoration SVGs and app screens are recorded as the
+storage path the reference serves them from, and fetched at draw time (they are
+public and CORS-open, so the export canvas stays untainted).
+
+`server/tools/compare-fidelity.mjs` scores the result — it renders every screen
+in the local sandbox and compares it against the reference's own preview image
+for that screenshot on a coarse colour grid.
+
+```bash
+node tools/compare-fidelity.mjs         # a sample of templates
+node tools/compare-fidelity.mjs --all
+```
+
+Those preview images are rendered when a template is published and can lag the
+live design, so a low score is not automatically a rendering bug.
+`server/tools/reference-shot.mjs` settles it by screenshotting the reference's
+own sandbox for one template:
+
+```bash
+node tools/reference-shot.mjs finance gKKu0 /tmp/reference.png
+```
+
+Templates whose capture is missing still copy — they fall back to a generated
 starter layout that keeps the template's palette, orientation and shot count.
 
 ## Known gaps
 
-- **Two templates (Kova, Pluto) ship with byte-exact captured designs.** Every
-  other template opens with a generated starter layout that has the *same layer
-  structure* — background wash, two decoration slots, a wave accent, caption and
-  device — so all 175 show the full set of edit sections; only the artwork and
-  exact geometry differ from the reference. Capture more with the tool above.
-- **Decoration slots render as tinted placeholder shapes.** The reference's
-  artwork lives in its own asset library behind an export-protected canvas, so
-  only the slot's position, size and shape family are reproduced; drop your own
-  artwork in from the panel.
-- Captions authored as translucent white (e.g. `#ffffffbf`) were designed
-  against that artwork, so they read faint over the placeholder background —
-  recolour them in the Caption panel.
-- Detail-page tags are derived from each template's category membership plus
-  its skill and theme facets. The reference also carries a few hand-authored
-  style tags ("multi layered", "gradient", "graphics") and a bespoke opening
-  paragraph per template, which are not public data.
+- **Device frames are drawn, not photographed.** The reference composites a
+  photographic frame PNG per device; this build draws the frame on the canvas
+  from `FRAME_SPECS`, so bezel and corner detail differ slightly. The `full`,
+  `dynamic` and frameless treatments are reproduced; the two perspective-warped
+  ones (`warpleft` / `warpright`, 29 elements across the set) render flat.
+- **Caption decorations are rebuilt, not copied.** Laurels, badges, bubbles and
+  the rest are redrawn to the reference's silhouettes rather than shipped as its
+  vector set, so they read the same at a glance but are not identical curves.
+- Text rasterises differently from the reference's own renderer, so line breaks
+  can fall a word earlier or later on a very tight caption.
 - No authentication: "Copy to Account" marks the project as kept and scopes it
   to a per-browser key rather than a real login.
 - `/` redirects to `/templates`; the marketing home page, `/pricing`, `/blog`

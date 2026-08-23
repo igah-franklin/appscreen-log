@@ -94,3 +94,23 @@ export const PinIcon = M("M16 9V4h1V2H7v2h1v5l-2 2v2h5.2v7h1.6v-7H18v-2z");
 export const DesktopIcon = M(
   "M21 2H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m0 13H3V4h18z",
 );
+
+/** Tablet + phone glyph used by the size menu's "Add more sizes" row. */
+export function DevicesIcon(p: P) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...p}
+    >
+      <rect x="1.5" y="5.5" width="13" height="13" rx="1.6" />
+      <path d="M5.5 15.5h5" />
+      <rect x="17" y="9" width="5.5" height="9.5" rx="1.2" />
+    </svg>
+  );
+}

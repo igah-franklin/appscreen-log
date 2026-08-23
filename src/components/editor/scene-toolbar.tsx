@@ -180,6 +180,7 @@ export function SceneToolbar({
           aria-haspopup="menu"
           aria-expanded={sizeMenuOpen}
           onClick={onToggleSizeMenu}
+          data-size-trigger=""
           className="btn btn-primary h-9"
         >
           {outputLabel}
