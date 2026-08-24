@@ -308,20 +308,7 @@ function drawDeviceFrame(
   ctx.save();
   roundRect(ctx, sx, sy, sw, sh, sr);
   ctx.clip();
-  if (img) {
-    drawCover(ctx, img, sx, sy, sw, sh);
-  } else {
-    const g = ctx.createLinearGradient(sx, sy, sx, sy + sh);
-    g.addColorStop(0, "#f4f4f6");
-    g.addColorStop(1, "#e4e4ea");
-    ctx.fillStyle = g;
-    ctx.fillRect(sx, sy, sw, sh);
-    ctx.fillStyle = "#b9b9c4";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `500 ${sw * 0.055}px "Geist Sans", sans-serif`;
-    ctx.fillText("Your app screen", sx + sw / 2, sy + sh / 2);
-  }
+  drawPlaceholderUi(ctx, sx, sy, sw, sh);
 
   /* Home Bar Indicator */
   if (kind === "iphone" || kind === "ipad") {
@@ -377,4 +364,44 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject;
     img.src = src;
   });
+}
+
+function drawPlaceholderUi(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  ctx.fillStyle = "#f7f7fa";
+  ctx.fillRect(x, y, w, h);
+
+  const pad = w * 0.06;
+  ctx.fillStyle = "#e6e6ee";
+  ctx.beginPath();
+  ctx.arc(x + pad + w * 0.04, y + h * 0.075, w * 0.04, 0, Math.PI * 2);
+  ctx.fill();
+  roundRect(ctx, x + pad + w * 0.11, y + h * 0.055, w * 0.62, h * 0.04, h * 0.02);
+  ctx.fill();
+
+  for (let i = 0; i < 6; i += 1) {
+    const cy = y + h * (0.13 + i * 0.028);
+    ctx.beginPath();
+    ctx.arc(x + pad + w * 0.06 + i * w * 0.14, cy, w * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  for (let i = 0; i < 6; i += 1) {
+    const ry = y + h * (0.28 + i * 0.1);
+    ctx.beginPath();
+    ctx.arc(x + pad + w * 0.06, ry, w * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+    roundRect(ctx, x + pad + w * 0.17, ry - h * 0.022, w * 0.5, h * 0.018, h * 0.01);
+    ctx.fill();
+    roundRect(ctx, x + pad + w * 0.17, ry + h * 0.005, w * 0.62, h * 0.018, h * 0.01);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "#ededf4";
+  ctx.fillRect(x, y + h * 0.93, w, h * 0.07);
 }
