@@ -11,23 +11,39 @@ import { loadImage } from "./render";
  * stays untainted.
  */
 
-/** Output size → the reference's own frame folder, as observed in its sandbox. */
+/**
+ * Output size → the reference's own frame folder.
+ *
+ * The four the reference was observed loading directly are marked; the rest are
+ * matched on the shape of the frame's screen cutout, which has to agree with
+ * the store size or the app screen is cropped into the wrong body. Cutout
+ * aspects, measured from the frames themselves:
+ *
+ *   iosphone 0.5625 · iosphonex 0.4636 · iosphone61 0.4597
+ *   iosphone67island / iosphone67noisland 0.4597
+ *   iostab 0.7513 · iostabx 0.7495 · ioswatchultra 0.8294
+ *   iosmacos / appletv 1.7774 · andgals25 0.4618 · andgaltabs8 0.6244
+ *
+ * Android is the exception: the reference uses the Galaxy bodies for the 16:9
+ * exports even though their cutouts are taller, so those follow observation
+ * rather than aspect.
+ */
 const FRAME_FOR_OUTPUT: Record<string, string> = {
-  "iphone-4-7": "iosphone",
-  "iphone-5-5": "iosphone",
-  "iphone-5-8": "iosphonex",
-  "iphone-6-1": "iosphone61",
-  "iphone-6-3": "iosphone67noisland",
-  "iphone-6-5": "iosphone",
-  "iphone-6-9": "iosphone67island",
-  "ipad-pro-12-9": "iostab",
-  "ipad-13": "iostabx",
-  "android-phone-16-9": "andgals25",
+  "iphone-4-7": "iosphone", //          750×1334  0.5622
+  "iphone-5-5": "iosphone", //         1242×2208  0.5625
+  "iphone-5-8": "iosphonex", //        1125×2436  0.4618
+  "iphone-6-1": "iosphone61", //       1179×2556  0.4613
+  "iphone-6-3": "iosphone67noisland", //1206×2622 0.4600
+  "iphone-6-5": "iosphonex", //        1242×2688  0.4621
+  "iphone-6-9": "iosphone67island", // observed
+  "ipad-pro-12-9": "iostab", //        2048×2732  0.7496
+  "ipad-13": "iostabx", // observed
+  "android-phone-16-9": "andgals25", // observed
   "android-tablet-7-16-9": "andgaltabs8",
-  "android-tablet-10-16-9": "andgaltabs8",
-  "apple-watch": "ioswatchultra",
-  macos: "iosmacos",
-  "apple-tv": "appletv",
+  "android-tablet-10-16-9": "andgaltabs8", // observed
+  "apple-watch": "ioswatchultra", //     410×502  0.8167
+  macos: "iosmacos", //                2880×1800  1.6000
+  "apple-tv": "appletv", //            3840×2160  1.7778
 };
 
 /** Colours the reference ships a frame for. */
