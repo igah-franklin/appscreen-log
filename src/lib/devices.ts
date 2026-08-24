@@ -91,11 +91,12 @@ export const OUTPUT_SIZES: OutputSize[] = [
   },
   {
     id: "iphone-6-5",
-    label: 'iPhones - 6.5"',
+    label: 'iPhones - 6.5" (1242 × 2688px)',
     store: "Apple",
     width: 1242,
     height: 2688,
     frame: "iphone",
+    note: 'Display: iPhone 11 Pro Max / XS Max - 6.5" devices (1242 × 2688px)',
   },
   {
     id: "iphone-6-9",
