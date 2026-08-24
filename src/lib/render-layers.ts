@@ -881,13 +881,18 @@ function drawDevice(
     ctx.translate(fx, fy);
     ctx.scale(fw / photo.size.w, fh / photo.size.h);
     ctx.clip(photo.path);
-    drawPlaceholderUi(
-      ctx,
-      photo.screen.x,
-      photo.screen.y,
-      photo.screen.w,
-      photo.screen.h,
-    );
+    const shot = lookup(images, el.device?.screenshot);
+    if (shot) {
+      drawFitted(ctx, shot, photo.screen, el.fit ?? "cover", el.vPos ?? "center");
+    } else {
+      drawPlaceholderUi(
+        ctx,
+        photo.screen.x,
+        photo.screen.y,
+        photo.screen.w,
+        photo.screen.h,
+      );
+    }
     ctx.restore();
 
     ctx.drawImage(photo.image, fx, fy, fw, fh);
@@ -1014,7 +1019,18 @@ function drawDevice(
   ctx.save();
   roundRect(ctx, sx, sy, sw, sh, sr);
   ctx.clip();
-  drawPlaceholderUi(ctx, sx, sy, sw, sh);
+  const img = lookup(images, el.device?.screenshot);
+  if (img) {
+    drawFitted(
+      ctx,
+      img,
+      { x: sx, y: sy, w: sw, h: sh },
+      el.fit ?? "cover",
+      el.vPos ?? "center",
+    );
+  } else {
+    drawPlaceholderUi(ctx, sx, sy, sw, sh);
+  }
 
   /* 6. Home Bar Indicator (over screenshot near bottom) */
   const flat = el.device?.style === "flat-dark" || el.device?.style === "flat-light";
