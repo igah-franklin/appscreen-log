@@ -31,6 +31,10 @@ import { ScreenCanvas } from "./screen-canvas";
 import { ScreenPanels } from "./panels";
 import { OutputSizeMenu } from "./output-size-menu";
 import { OutputSizesDialog } from "./output-sizes-dialog";
+import {
+  ExportProgressModal,
+  type ExportProgress,
+} from "./export-progress-modal";
 
 const STORAGE_KEY = "appscreens.sandbox.project";
 
@@ -101,6 +105,13 @@ export function Editor() {
   const [apiProject, setApiProject] = useState<ApiProject | null>(null);
   const [loadingProject, setLoadingProject] = useState(Boolean(projectId));
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [exportProgress, setExportProgress] = useState<ExportProgress>({
+    active: false,
+    done: 0,
+    total: 0,
+    message: "",
+    isComplete: false,
+  });
 
   useEffect(() => {
     if (!projectId) return;
@@ -256,11 +267,26 @@ export function Editor() {
     }
     const total = targets.length * screens.length;
     let done = 0;
-    setStatus(`Rendering 0 / ${total}…`);
+    setExportProgress({
+      active: true,
+      done: 0,
+      total,
+      message: `Rendering 0 of ${total} screenshots...`,
+      isComplete: false,
+    });
+
     const cache = new Map<string, HTMLImageElement>();
     for (const size of targets) {
       for (let i = 0; i < screens.length; i += 1) {
         const screen = screens[i];
+        setExportProgress({
+          active: true,
+          done,
+          total,
+          message: `Rendering screen ${i + 1} of ${screens.length} (${size.label})...`,
+          isComplete: false,
+        });
+
         for (const src of [screen.background.image, screen.device.screenshot]) {
           if (src && !cache.has(src)) {
             try {
@@ -288,15 +314,23 @@ export function Editor() {
         a.remove();
         URL.revokeObjectURL(a.href);
         done += 1;
-        setStatus(`Rendering ${done} / ${total}…`);
-        // yield so the progress line repaints between large PNGs
+        setExportProgress({
+          active: true,
+          done,
+          total,
+          message: `Exported ${done} of ${total} screenshots`,
+          isComplete: false,
+        });
         await new Promise((r) => setTimeout(r, 0));
       }
     }
-    flash(
-      `Exported ${screens.length * targets.length} PNG${screens.length * targets.length === 1 ? "" : "s"
-      }`,
-    );
+    setExportProgress({
+      active: true,
+      done: total,
+      total,
+      message: `Successfully exported ${done} PNG file${done === 1 ? "" : "s"}!`,
+      isComplete: true,
+    });
   };
 
   if (projectId) {
@@ -650,6 +684,11 @@ export function Editor() {
           }
         />
       )}
+
+      <ExportProgressModal
+        progress={exportProgress}
+        onClose={() => setExportProgress((p) => ({ ...p, active: false }))}
+      />
     </div>
   );
 }

@@ -18,6 +18,10 @@ import { SceneEditPanel } from "./scene-edit-panel";
 import { SceneToolbar } from "./scene-toolbar";
 import { SmallScreenNotice } from "./small-screen-notice";
 import {
+  ExportProgressModal,
+  type ExportProgress,
+} from "./export-progress-modal";
+import {
   CheckIcon,
   EditIcon,
   KeyboardIcon,
@@ -39,6 +43,13 @@ export function LayeredEditor({
   const [hover, setHover] = useState<{ screen: number; ref: ElementRef } | null>(null);
   const [zoom, setZoom] = useState(100);
   const [status, setStatus] = useState<string | null>(null);
+  const [exportProgress, setExportProgress] = useState<ExportProgress>({
+    active: false,
+    done: 0,
+    total: 0,
+    message: "",
+    isComplete: false,
+  });
   const [showSizeMenu, setShowSizeMenu] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
   const [showGlobals, setShowGlobals] = useState(false);
@@ -139,7 +150,13 @@ export function LayeredEditor({
 
     const total = sizes.length * project.screens.length;
     let done = 0;
-    setStatus(`Rendering 0 / ${total}…`);
+    setExportProgress({
+      active: true,
+      done: 0,
+      total,
+      message: `Rendering 0 of ${total} screens...`,
+      isComplete: false,
+    });
 
     const cache = new Map<string, HTMLImageElement>();
     const entries: ZipEntry[] = [];
@@ -147,6 +164,14 @@ export function LayeredEditor({
     for (const size of sizes) {
       for (let i = 0; i < project.screens.length; i += 1) {
         const screen = project.screens[i];
+        setExportProgress({
+          active: true,
+          done,
+          total,
+          message: `Rendering screen ${i + 1} of ${project.screens.length} (${size.label})...`,
+          isComplete: false,
+        });
+
         await ensureFonts(
           screenFonts(screen, project.titleFont, project.subtitleFont),
         );
@@ -186,12 +211,25 @@ export function LayeredEditor({
         }
 
         done += 1;
-        setStatus(`Rendering ${done} / ${total}…`);
+        setExportProgress({
+          active: true,
+          done,
+          total,
+          message: `Rendered ${done} of ${total} screens`,
+          isComplete: false,
+        });
         await new Promise((r) => setTimeout(r, 0));
       }
     }
 
-    setStatus("Packaging zip…");
+    setExportProgress({
+      active: true,
+      done: total,
+      total,
+      message: "Packaging ZIP file...",
+      isComplete: false,
+    });
+
     const zip = createZip(entries);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(zip);
@@ -201,8 +239,13 @@ export function LayeredEditor({
     a.remove();
     URL.revokeObjectURL(a.href);
 
-    setStatus(`Exported ${entries.length} screenshots as a zip`);
-    window.setTimeout(() => setStatus(null), 2800);
+    setExportProgress({
+      active: true,
+      done: total,
+      total,
+      message: `Successfully exported ${entries.length} store-ready screenshot${entries.length === 1 ? "" : "s"} as a ZIP!`,
+      isComplete: true,
+    });
   };
 
   const previewWidth = Math.round((350 * zoom) / 100);
@@ -428,6 +471,11 @@ export function LayeredEditor({
             }
           />
         )}
+
+        <ExportProgressModal
+          progress={exportProgress}
+          onClose={() => setExportProgress((p) => ({ ...p, active: false }))}
+        />
       </div>
     </>
   );
