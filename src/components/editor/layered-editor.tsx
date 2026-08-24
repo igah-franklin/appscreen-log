@@ -251,8 +251,9 @@ export function LayeredEditor({
         {status && (
           <div
             role="status"
-            className="border-b border-indigo-100 bg-indigo-50 px-4 py-1.5 text-center text-xs font-medium text-indigo-700"
+            className="pointer-events-none fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-black/20 backdrop-blur-sm ring-1 ring-white/10"
           >
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             {status}
           </div>
         )}
