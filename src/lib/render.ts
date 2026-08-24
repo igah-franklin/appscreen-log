@@ -308,7 +308,11 @@ function drawDeviceFrame(
   ctx.save();
   roundRect(ctx, sx, sy, sw, sh, sr);
   ctx.clip();
-  drawPlaceholderUi(ctx, sx, sy, sw, sh);
+  if (img) {
+    drawCover(ctx, img, sx, sy, sw, sh);
+  } else {
+    drawPlaceholderUi(ctx, sx, sy, sw, sh);
+  }
 
   /* Home Bar Indicator */
   if (kind === "iphone" || kind === "ipad") {
