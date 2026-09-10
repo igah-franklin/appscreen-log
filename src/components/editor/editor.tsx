@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  DEFAULT_OUTPUT,
   DEFAULT_OUTPUTS,
   OUTPUT_BY_ID,
-  OUTPUT_SIZES,
   type OutputSize,
 } from "@/lib/devices";
 import {
@@ -163,7 +163,7 @@ export function Editor() {
   }, [project, templateId]);
 
   const output: OutputSize =
-    (project && OUTPUT_BY_ID.get(project.activeOutput)) || OUTPUT_SIZES[0];
+    (project && OUTPUT_BY_ID.get(project.activeOutput)) || DEFAULT_OUTPUT;
 
   const update = useCallback(
     (fn: (p: Project) => Project, snapshot = true) => {

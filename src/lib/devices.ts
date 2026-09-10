@@ -194,8 +194,20 @@ export function orderOutputs(ids: string[]): string[] {
   return [...new Set(ids)].sort((a, b) => rank(a) - rank(b));
 }
 
+/**
+ * The size a project opens on, and the one every fallback resolves to. The
+ * 6.5" iPhone is the App Store's most widely accepted phone size, so it is
+ * what the editor should be showing before anyone picks anything.
+ */
+export const DEFAULT_OUTPUT_ID = "iphone-6-5";
+
+/** The same size resolved, so callers falling back to it need no assertion. */
+export const DEFAULT_OUTPUT = OUTPUT_SIZES.find(
+  (o) => o.id === DEFAULT_OUTPUT_ID,
+) as OutputSize;
+
 export const DEFAULT_OUTPUTS = [
-  "iphone-6-5",
+  DEFAULT_OUTPUT_ID,
   "iphone-6-9",
   "ipad-13",
   "android-phone-16-9",

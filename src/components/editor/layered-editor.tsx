@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type ApiElement, type ApiProject, type ApiScreen } from "@/lib/api";
-import { OUTPUT_BY_ID, OUTPUT_SIZES, type OutputSize } from "@/lib/devices";
+import {
+  DEFAULT_OUTPUT,
+  OUTPUT_BY_ID,
+  orderOutputs,
+  type OutputSize,
+} from "@/lib/devices";
 import { drawLayeredScreen } from "@/lib/render-layers";
 import { loadImage } from "@/lib/render";
 import { hitTest, elementKey, type ElementRef } from "@/lib/hit-test";
@@ -58,8 +63,8 @@ export function LayeredEditor({
 
   const output: OutputSize =
     OUTPUT_BY_ID.get(project.activeOutput) ??
-    OUTPUT_SIZES.find((o) => project.outputs.includes(o.id)) ??
-    OUTPUT_SIZES[0];
+    OUTPUT_BY_ID.get(orderOutputs(project.outputs)[0] ?? "") ??
+    DEFAULT_OUTPUT;
 
   /* debounce autosave to the API */
   useEffect(() => {

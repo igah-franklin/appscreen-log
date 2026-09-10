@@ -27,6 +27,11 @@ import { loadImage } from "./render";
  * Android is the exception: the reference uses the Galaxy bodies for the 16:9
  * exports even though their cutouts are taller, so those follow observation
  * rather than aspect.
+ *
+ * The 6.5" export shares the 6.9" body. Its own aspect (0.4620) sits between
+ * the two candidates, and `iosphone67island` is the far higher-resolution
+ * photograph (1800×3700 against `iosphonex`'s 868×1750), so it holds up at the
+ * sizes the designer draws phones at where the older body goes soft.
  */
 const FRAME_FOR_OUTPUT: Record<string, string> = {
   "iphone-4-7": "iosphone", //          750×1334  0.5622
@@ -34,7 +39,7 @@ const FRAME_FOR_OUTPUT: Record<string, string> = {
   "iphone-5-8": "iosphonex", //        1125×2436  0.4618
   "iphone-6-1": "iosphone61", //       1179×2556  0.4613
   "iphone-6-3": "iosphone67noisland", //1206×2622 0.4600
-  "iphone-6-5": "iosphonex", //        1242×2688  0.4621
+  "iphone-6-5": "iosphone67island", // 1242×2688  0.4620
   "iphone-6-9": "iosphone67island", // observed
   "ipad-pro-12-9": "iostab", //        2048×2732  0.7496
   "ipad-13": "iostabx", // observed
